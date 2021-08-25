@@ -5,17 +5,17 @@ Wrapper for medchecksdk
 ## Installation
 
 ```sh
-npm install react-native-medcheck-sdk
+npm install https://github.com/smartfuturesg/react-native-medcheck-sdk.git --save
 ```
 
 ## Usage
 
 ```js
-import MedcheckSdk from "react-native-medcheck-sdk";
+import MedcheckSdk from 'react-native-medcheck-sdk';
 
 // ...
 
-const result = await MedcheckSdk.multiply(3, 7);
+const result = await MedcheckSdk.startScan();
 ```
 
 ## Contributing

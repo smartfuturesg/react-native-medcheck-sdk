@@ -3,13 +3,14 @@ import * as React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import MedcheckSdk from 'react-native-medcheck-sdk';
 
+import ConnectScreen from './ConnectScreen';
+
+const medKit = new MedcheckSdk();
 export default function App() {
   const [result, setResult] = React.useState<number | undefined>();
 
-  React.useEffect(() => {
-    MedcheckSdk.multiply(3, 7).then(setResult);
-  }, []);
-
+  // React.useEffect(() => {}, []);
+  return <ConnectScreen />;
   return (
     <View style={styles.container}>
       <Text>Result: {result}</Text>

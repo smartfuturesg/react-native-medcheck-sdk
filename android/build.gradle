@@ -29,13 +29,13 @@ android {
   compileSdkVersion getExtOrIntegerDefault('compileSdkVersion')
   buildToolsVersion getExtOrDefault('buildToolsVersion')
   defaultConfig {
-    minSdkVersion 18
+    minSdkVersion 21
     targetSdkVersion getExtOrIntegerDefault('targetSdkVersion')
     versionCode 1
     versionName "1.0"
-    
+
   }
-  
+
   buildTypes {
     release {
       minifyEnabled false
@@ -123,12 +123,37 @@ repositories {
 
 def kotlin_version = getExtOrDefault('kotlinVersion')
 
+def nordicScannerVersion = '1.0.0'
+def eventbusVersion = '3.0.0'
+def rxJava2Version = '2.1.3'
+def rxAndroidVersion = '2.0.1'
+def PLAY_SERVICES_VERSION = "11.0.4"
+def gsonVersion = '2.6.2'
+
 dependencies {
   // noinspection GradleDynamicVersion
   api 'com.facebook.react:react-native:+'
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-//  implementation project(':medchecklib')
+
 //  implementation project(path: ':medchecklib')
+//    implementation project(':checkmelib')
+//  implementation 'com.squareup.retrofit2:converter-gson:2.6.2'
+//  implementation 'com.google.code.gson:gson:2.6.2'
+  implementation files('libs/lifesene_ble_v4.1.0.jar')
+
+  // ble scanner
+  implementation "no.nordicsemi.android.support.v18:scanner:$nordicScannerVersion"
+  // event bus
+  implementation "org.greenrobot:eventbus:$eventbusVersion"
+  // rx java
+  implementation "io.reactivex.rxjava2:rxjava:$rxJava2Version"
+  // rx android
+  implementation "io.reactivex.rxjava2:rxandroid:$rxAndroidVersion"
+
+  implementation "com.google.android.gms:play-services-location:$PLAY_SERVICES_VERSION"
+
+  implementation "com.squareup.retrofit2:converter-gson:$gsonVersion"
+
   implementation fileTree(include: ['*.aar'], dir: 'libs')
 }
 

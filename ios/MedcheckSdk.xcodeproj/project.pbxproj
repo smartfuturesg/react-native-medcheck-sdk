@@ -7,10 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-
-		5E555C0D2413F4C50049A1A2 /* MedcheckSdk.m in Sources */ = {isa = PBXBuildFile; fileRef = B3E7B5891CC2AC0600A0062D /* MedcheckSdk.m */; };
-		F4FF95D7245B92E800C19C63 /*  MedcheckSdk.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FF95D6245B92E800C19C63 /*  MedcheckSdk.swift */; };
-
+		F4FF95D7245B92E800C19C63 /* MedcheckSdk.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FF95D6245B92E800C19C63 /* MedcheckSdk.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -27,11 +24,110 @@
 
 /* Begin PBXFileReference section */
 		134814201AA4EA6300B7C361 /* libMedcheckSdk.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMedcheckSdk.a; sourceTree = BUILT_PRODUCTS_DIR; };
-
+		4152E57926D538DC0096756C /* ObjC.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjC.m; sourceTree = "<group>"; };
+		4152E57A26D538DC0096756C /* ObjC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjC.h; sourceTree = "<group>"; };
+		4152E64B26D53CE30096756C /* BLE+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BLE+Extension.swift"; sourceTree = "<group>"; };
+		4152E64C26D53CE30096756C /* BPMDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BPMDataManager.swift; sourceTree = "<group>"; };
+		4152E64D26D53CE30096756C /* MCBluetoothConstant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCBluetoothConstant.swift; sourceTree = "<group>"; };
+		4152E64E26D53CE30096756C /* MCBluetoothDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCBluetoothDelegate.swift; sourceTree = "<group>"; };
+		4152E64F26D53CE30096756C /* MCBluetoothManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCBluetoothManager.swift; sourceTree = "<group>"; };
+		4152E6CD26D543250096756C /* BleDevice+CoreDataClass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BleDevice+CoreDataClass.h"; sourceTree = "<group>"; };
+		4152E6CE26D543250096756C /* BleDevice+CoreDataClass.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "BleDevice+CoreDataClass.m"; sourceTree = "<group>"; };
+		4152E6CF26D543250096756C /* BleDevice+CoreDataProperties.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BleDevice+CoreDataProperties.h"; sourceTree = "<group>"; };
+		4152E6D026D543250096756C /* BleDevice+CoreDataProperties.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "BleDevice+CoreDataProperties.m"; sourceTree = "<group>"; };
+		4152E6D226D543250096756C /* DataFormatConverter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DataFormatConverter.h; sourceTree = "<group>"; };
+		4152E6D326D543250096756C /* DataFormatConverter.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DataFormatConverter.m; sourceTree = "<group>"; };
+		4152E6D426D543250096756C /* DatabaseManagerDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DatabaseManagerDelegate.h; sourceTree = "<group>"; };
+		4152E6D526D543250096756C /* DeviceAlarmClock+CoreDataClass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DeviceAlarmClock+CoreDataClass.h"; sourceTree = "<group>"; };
+		4152E6D626D543250096756C /* DeviceAlarmClock+CoreDataClass.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "DeviceAlarmClock+CoreDataClass.m"; sourceTree = "<group>"; };
+		4152E6D726D543250096756C /* DeviceAlarmClock+CoreDataProperties.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DeviceAlarmClock+CoreDataProperties.h"; sourceTree = "<group>"; };
+		4152E6D826D543250096756C /* DeviceAlarmClock+CoreDataProperties.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "DeviceAlarmClock+CoreDataProperties.m"; sourceTree = "<group>"; };
+		4152E6D926D543250096756C /* DeviceUser+CoreDataClass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DeviceUser+CoreDataClass.h"; sourceTree = "<group>"; };
+		4152E6DA26D543250096756C /* DeviceUser+CoreDataClass.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "DeviceUser+CoreDataClass.m"; sourceTree = "<group>"; };
+		4152E6DB26D543250096756C /* DeviceUser+CoreDataProperties.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DeviceUser+CoreDataProperties.h"; sourceTree = "<group>"; };
+		4152E6DC26D543250096756C /* DeviceUser+CoreDataProperties.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "DeviceUser+CoreDataProperties.m"; sourceTree = "<group>"; };
+		4152E6DD26D543250096756C /* DeviceUserProfiles+CoreDataClass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DeviceUserProfiles+CoreDataClass.h"; sourceTree = "<group>"; };
+		4152E6DE26D543250096756C /* DeviceUserProfiles+CoreDataClass.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "DeviceUserProfiles+CoreDataClass.m"; sourceTree = "<group>"; };
+		4152E6DF26D543250096756C /* DeviceUserProfiles+CoreDataProperties.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DeviceUserProfiles+CoreDataProperties.h"; sourceTree = "<group>"; };
+		4152E6E026D543250096756C /* DeviceUserProfiles+CoreDataProperties.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "DeviceUserProfiles+CoreDataProperties.m"; sourceTree = "<group>"; };
+		4152E6E126D543250096756C /* LSDatabaseAvailability.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSDatabaseAvailability.h; sourceTree = "<group>"; };
+		4152E6E226D543250096756C /* LSDatabaseManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSDatabaseManager.h; sourceTree = "<group>"; };
+		4152E6E326D543250096756C /* LSDatabaseManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSDatabaseManager.m; sourceTree = "<group>"; };
+		4152E6E526D543250096756C /* Model.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Model.xcdatamodel; sourceTree = "<group>"; };
+		4152E6E626D543250096756C /* ScanFilter+CoreDataClass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ScanFilter+CoreDataClass.h"; sourceTree = "<group>"; };
+		4152E6E726D543250096756C /* ScanFilter+CoreDataClass.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "ScanFilter+CoreDataClass.m"; sourceTree = "<group>"; };
+		4152E6E826D543250096756C /* ScanFilter+CoreDataProperties.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ScanFilter+CoreDataProperties.h"; sourceTree = "<group>"; };
+		4152E6E926D543250096756C /* ScanFilter+CoreDataProperties.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "ScanFilter+CoreDataProperties.m"; sourceTree = "<group>"; };
+		4152E6EA26D543250096756C /* LSBluetoothComponents.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSBluetoothComponents.h; sourceTree = "<group>"; };
+		4152E6EC26D543250096756C /* LSBleGattServicesConstants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSBleGattServicesConstants.h; sourceTree = "<group>"; };
+		4152E6ED26D543250096756C /* LSDeviceProfiles.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSDeviceProfiles.h; sourceTree = "<group>"; };
+		4152E6EE26D543250096756C /* LSDeviceProfiles.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSDeviceProfiles.m; sourceTree = "<group>"; };
+		4152E6EF26D543250096756C /* LSProtocolClassifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSProtocolClassifier.h; sourceTree = "<group>"; };
+		4152E6F026D543250096756C /* LSProtocolClassifier.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSProtocolClassifier.m; sourceTree = "<group>"; };
+		4152E6F126D543250096756C /* LSProtocolHandleCenter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSProtocolHandleCenter.h; sourceTree = "<group>"; };
+		4152E6F226D543250096756C /* LSProtocolHandleCenter.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSProtocolHandleCenter.m; sourceTree = "<group>"; };
+		4152E6F326D543250096756C /* LSProtocolHandleCenterDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSProtocolHandleCenterDelegate.h; sourceTree = "<group>"; };
+		4152E6F426D543250096756C /* LSProtocolMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSProtocolMessage.h; sourceTree = "<group>"; };
+		4152E6F526D543250096756C /* LSProtocolMessage.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSProtocolMessage.m; sourceTree = "<group>"; };
+		4152E6F626D543250096756C /* LSProtocolWorkflow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSProtocolWorkflow.h; sourceTree = "<group>"; };
+		4152E6F726D543250096756C /* LSProtocolWorkflow.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSProtocolWorkflow.m; sourceTree = "<group>"; };
+		4152E6FA26D543250096756C /* LSAdiposeData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSAdiposeData.h; sourceTree = "<group>"; };
+		4152E6FB26D543250096756C /* LSAdiposeData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSAdiposeData.m; sourceTree = "<group>"; };
+		4152E6FC26D543250096756C /* LSDeviceInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSDeviceInfo.h; sourceTree = "<group>"; };
+		4152E6FD26D543250096756C /* LSDeviceInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSDeviceInfo.m; sourceTree = "<group>"; };
+		4152E6FE26D543250096756C /* LSHeightData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSHeightData.h; sourceTree = "<group>"; };
+		4152E6FF26D543250096756C /* LSHeightData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSHeightData.m; sourceTree = "<group>"; };
+		4152E70026D543250096756C /* LSKitchenScaleData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSKitchenScaleData.h; sourceTree = "<group>"; };
+		4152E70126D543250096756C /* LSKitchenScaleData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSKitchenScaleData.m; sourceTree = "<group>"; };
+		4152E70226D543250096756C /* LSPedometerAlarmClock.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSPedometerAlarmClock.h; sourceTree = "<group>"; };
+		4152E70326D543250096756C /* LSPedometerAlarmClock.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSPedometerAlarmClock.m; sourceTree = "<group>"; };
+		4152E70426D543250096756C /* LSPedometerData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSPedometerData.h; sourceTree = "<group>"; };
+		4152E70526D543250096756C /* LSPedometerData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSPedometerData.m; sourceTree = "<group>"; };
+		4152E70626D543250096756C /* LSPedometerUserInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSPedometerUserInfo.h; sourceTree = "<group>"; };
+		4152E70726D543250096756C /* LSPedometerUserInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSPedometerUserInfo.m; sourceTree = "<group>"; };
+		4152E70826D543250096756C /* LSProductUserInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSProductUserInfo.h; sourceTree = "<group>"; };
+		4152E70926D543250096756C /* LSProductUserInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSProductUserInfo.m; sourceTree = "<group>"; };
+		4152E70A26D543250096756C /* LSSleepRecord.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSSleepRecord.h; sourceTree = "<group>"; };
+		4152E70B26D543250096756C /* LSSleepRecord.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSSleepRecord.m; sourceTree = "<group>"; };
+		4152E70C26D543250096756C /* LSSphygmometerData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSSphygmometerData.h; sourceTree = "<group>"; };
+		4152E70D26D543250096756C /* LSSphygmometerData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSSphygmometerData.m; sourceTree = "<group>"; };
+		4152E70E26D543250096756C /* LSVibrationVoice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSVibrationVoice.h; sourceTree = "<group>"; };
+		4152E70F26D543250096756C /* LSVibrationVoice.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSVibrationVoice.m; sourceTree = "<group>"; };
+		4152E71026D543250096756C /* LSWeightAppendData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSWeightAppendData.h; sourceTree = "<group>"; };
+		4152E71126D543250096756C /* LSWeightAppendData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSWeightAppendData.m; sourceTree = "<group>"; };
+		4152E71226D543250096756C /* LSWeightData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSWeightData.h; sourceTree = "<group>"; };
+		4152E71326D543250096756C /* LSWeightData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSWeightData.m; sourceTree = "<group>"; };
+		4152E71426D543250096756C /* NSMutableArray+QueueAdditions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSMutableArray+QueueAdditions.h"; sourceTree = "<group>"; };
+		4152E71526D543250096756C /* NSMutableArray+QueueAdditions.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NSMutableArray+QueueAdditions.m"; sourceTree = "<group>"; };
+		4152E71626D543250096756C /* BleManagerProfiles.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BleManagerProfiles.h; sourceTree = "<group>"; };
+		4152E71726D543250096756C /* LSBleDataReceiveDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSBleDataReceiveDelegate.h; sourceTree = "<group>"; };
+		4152E71826D543250096756C /* LSBLEDeviceManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSBLEDeviceManager.h; sourceTree = "<group>"; };
+		4152E71926D543250096756C /* LSBLEDeviceManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSBLEDeviceManager.m; sourceTree = "<group>"; };
+		4152E71A26D543250096756C /* LSBlePairingDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSBlePairingDelegate.h; sourceTree = "<group>"; };
+		4152E71B26D543250096756C /* LSBleStatusChangeDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSBleStatusChangeDelegate.h; sourceTree = "<group>"; };
+		4152E71C26D543250096756C /* LSDeviceConnectDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSDeviceConnectDelegate.h; sourceTree = "<group>"; };
+		4152E71E26D543250096756C /* LSBleConnector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSBleConnector.h; sourceTree = "<group>"; };
+		4152E71F26D543250096756C /* LSBleConnector.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSBleConnector.m; sourceTree = "<group>"; };
+		4152E72026D543250096756C /* LSBleConnectorDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSBleConnectorDelegate.h; sourceTree = "<group>"; };
+		4152E72226D543250096756C /* BleDebugLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BleDebugLogger.h; sourceTree = "<group>"; };
+		4152E72326D543250096756C /* BleDebugLogger.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BleDebugLogger.m; sourceTree = "<group>"; };
+		4152E72426D543250096756C /* DataUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DataUtilities.h; sourceTree = "<group>"; };
+		4152E72526D543250096756C /* DataUtilities.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DataUtilities.m; sourceTree = "<group>"; };
+		4152E72626D543250096756C /* DispatchBasedTimer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DispatchBasedTimer.h; sourceTree = "<group>"; };
+		4152E72726D543250096756C /* DispatchBasedTimer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DispatchBasedTimer.m; sourceTree = "<group>"; };
+		4152E72826D543250096756C /* LSBleCommandProfiles.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSBleCommandProfiles.h; sourceTree = "<group>"; };
+		4152E72926D543250096756C /* LSBleCommandProfiles.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSBleCommandProfiles.m; sourceTree = "<group>"; };
+		4152E72A26D543250096756C /* LSBleDataParsingTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSBleDataParsingTools.h; sourceTree = "<group>"; };
+		4152E72B26D543250096756C /* LSBleDataParsingTools.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSBleDataParsingTools.m; sourceTree = "<group>"; };
+		4152E72C26D543250096756C /* LSFatParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSFatParser.h; sourceTree = "<group>"; };
+		4152E72D26D543250096756C /* LSFatParser.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSFatParser.m; sourceTree = "<group>"; };
+		4152E72E26D543250096756C /* LSFormatConverter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSFormatConverter.h; sourceTree = "<group>"; };
+		4152E72F26D543250096756C /* LSFormatConverter.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSFormatConverter.m; sourceTree = "<group>"; };
+		4152E73026D543250096756C /* LSToolsCenter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LSToolsCenter.h; sourceTree = "<group>"; };
+		4152E73126D543250096756C /* LSToolsCenter.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LSToolsCenter.m; sourceTree = "<group>"; };
 		B3E7B5891CC2AC0600A0062D /* MedcheckSdk.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MedcheckSdk.m; sourceTree = "<group>"; };
 		F4FF95D5245B92E700C19C63 /* MedcheckSdk-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MedcheckSdk-Bridging-Header.h"; sourceTree = "<group>"; };
 		F4FF95D6245B92E800C19C63 /* MedcheckSdk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedcheckSdk.swift; sourceTree = "<group>"; };
-
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,14 +149,193 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		4152E64926D53CE30096756C /* MedCheckPod */ = {
+			isa = PBXGroup;
+			children = (
+				4152E64A26D53CE30096756C /* Classes */,
+			);
+			path = MedCheckPod;
+			sourceTree = "<group>";
+		};
+		4152E64A26D53CE30096756C /* Classes */ = {
+			isa = PBXGroup;
+			children = (
+				4152E64B26D53CE30096756C /* BLE+Extension.swift */,
+				4152E64C26D53CE30096756C /* BPMDataManager.swift */,
+				4152E64D26D53CE30096756C /* MCBluetoothConstant.swift */,
+				4152E64E26D53CE30096756C /* MCBluetoothDelegate.swift */,
+				4152E64F26D53CE30096756C /* MCBluetoothManager.swift */,
+			);
+			path = Classes;
+			sourceTree = "<group>";
+		};
+		4152E6CB26D543250096756C /* BMI_LSBluetooth */ = {
+			isa = PBXGroup;
+			children = (
+				4152E6CC26D543250096756C /* CoreData */,
+				4152E6EA26D543250096756C /* LSBluetoothComponents.h */,
+				4152E6EB26D543250096756C /* proto */,
+				4152E6F826D543250096756C /* public */,
+				4152E71D26D543250096756C /* system */,
+				4152E72126D543250096756C /* utils */,
+			);
+			path = BMI_LSBluetooth;
+			sourceTree = "<group>";
+		};
+		4152E6CC26D543250096756C /* CoreData */ = {
+			isa = PBXGroup;
+			children = (
+				4152E6CD26D543250096756C /* BleDevice+CoreDataClass.h */,
+				4152E6CE26D543250096756C /* BleDevice+CoreDataClass.m */,
+				4152E6CF26D543250096756C /* BleDevice+CoreDataProperties.h */,
+				4152E6D026D543250096756C /* BleDevice+CoreDataProperties.m */,
+				4152E6D126D543250096756C /* Categories */,
+				4152E6D426D543250096756C /* DatabaseManagerDelegate.h */,
+				4152E6D526D543250096756C /* DeviceAlarmClock+CoreDataClass.h */,
+				4152E6D626D543250096756C /* DeviceAlarmClock+CoreDataClass.m */,
+				4152E6D726D543250096756C /* DeviceAlarmClock+CoreDataProperties.h */,
+				4152E6D826D543250096756C /* DeviceAlarmClock+CoreDataProperties.m */,
+				4152E6D926D543250096756C /* DeviceUser+CoreDataClass.h */,
+				4152E6DA26D543250096756C /* DeviceUser+CoreDataClass.m */,
+				4152E6DB26D543250096756C /* DeviceUser+CoreDataProperties.h */,
+				4152E6DC26D543250096756C /* DeviceUser+CoreDataProperties.m */,
+				4152E6DD26D543250096756C /* DeviceUserProfiles+CoreDataClass.h */,
+				4152E6DE26D543250096756C /* DeviceUserProfiles+CoreDataClass.m */,
+				4152E6DF26D543250096756C /* DeviceUserProfiles+CoreDataProperties.h */,
+				4152E6E026D543250096756C /* DeviceUserProfiles+CoreDataProperties.m */,
+				4152E6E126D543250096756C /* LSDatabaseAvailability.h */,
+				4152E6E226D543250096756C /* LSDatabaseManager.h */,
+				4152E6E326D543250096756C /* LSDatabaseManager.m */,
+				4152E6E426D543250096756C /* Model.xcdatamodeld */,
+				4152E6E626D543250096756C /* ScanFilter+CoreDataClass.h */,
+				4152E6E726D543250096756C /* ScanFilter+CoreDataClass.m */,
+				4152E6E826D543250096756C /* ScanFilter+CoreDataProperties.h */,
+				4152E6E926D543250096756C /* ScanFilter+CoreDataProperties.m */,
+			);
+			path = CoreData;
+			sourceTree = "<group>";
+		};
+		4152E6D126D543250096756C /* Categories */ = {
+			isa = PBXGroup;
+			children = (
+				4152E6D226D543250096756C /* DataFormatConverter.h */,
+				4152E6D326D543250096756C /* DataFormatConverter.m */,
+			);
+			path = Categories;
+			sourceTree = "<group>";
+		};
+		4152E6EB26D543250096756C /* proto */ = {
+			isa = PBXGroup;
+			children = (
+				4152E6EC26D543250096756C /* LSBleGattServicesConstants.h */,
+				4152E6ED26D543250096756C /* LSDeviceProfiles.h */,
+				4152E6EE26D543250096756C /* LSDeviceProfiles.m */,
+				4152E6EF26D543250096756C /* LSProtocolClassifier.h */,
+				4152E6F026D543250096756C /* LSProtocolClassifier.m */,
+				4152E6F126D543250096756C /* LSProtocolHandleCenter.h */,
+				4152E6F226D543250096756C /* LSProtocolHandleCenter.m */,
+				4152E6F326D543250096756C /* LSProtocolHandleCenterDelegate.h */,
+				4152E6F426D543250096756C /* LSProtocolMessage.h */,
+				4152E6F526D543250096756C /* LSProtocolMessage.m */,
+				4152E6F626D543250096756C /* LSProtocolWorkflow.h */,
+				4152E6F726D543250096756C /* LSProtocolWorkflow.m */,
+			);
+			path = proto;
+			sourceTree = "<group>";
+		};
+		4152E6F826D543250096756C /* public */ = {
+			isa = PBXGroup;
+			children = (
+				4152E6F926D543250096756C /* bean */,
+				4152E71626D543250096756C /* BleManagerProfiles.h */,
+				4152E71726D543250096756C /* LSBleDataReceiveDelegate.h */,
+				4152E71826D543250096756C /* LSBLEDeviceManager.h */,
+				4152E71926D543250096756C /* LSBLEDeviceManager.m */,
+				4152E71A26D543250096756C /* LSBlePairingDelegate.h */,
+				4152E71B26D543250096756C /* LSBleStatusChangeDelegate.h */,
+				4152E71C26D543250096756C /* LSDeviceConnectDelegate.h */,
+			);
+			path = public;
+			sourceTree = "<group>";
+		};
+		4152E6F926D543250096756C /* bean */ = {
+			isa = PBXGroup;
+			children = (
+				4152E6FA26D543250096756C /* LSAdiposeData.h */,
+				4152E6FB26D543250096756C /* LSAdiposeData.m */,
+				4152E6FC26D543250096756C /* LSDeviceInfo.h */,
+				4152E6FD26D543250096756C /* LSDeviceInfo.m */,
+				4152E6FE26D543250096756C /* LSHeightData.h */,
+				4152E6FF26D543250096756C /* LSHeightData.m */,
+				4152E70026D543250096756C /* LSKitchenScaleData.h */,
+				4152E70126D543250096756C /* LSKitchenScaleData.m */,
+				4152E70226D543250096756C /* LSPedometerAlarmClock.h */,
+				4152E70326D543250096756C /* LSPedometerAlarmClock.m */,
+				4152E70426D543250096756C /* LSPedometerData.h */,
+				4152E70526D543250096756C /* LSPedometerData.m */,
+				4152E70626D543250096756C /* LSPedometerUserInfo.h */,
+				4152E70726D543250096756C /* LSPedometerUserInfo.m */,
+				4152E70826D543250096756C /* LSProductUserInfo.h */,
+				4152E70926D543250096756C /* LSProductUserInfo.m */,
+				4152E70A26D543250096756C /* LSSleepRecord.h */,
+				4152E70B26D543250096756C /* LSSleepRecord.m */,
+				4152E70C26D543250096756C /* LSSphygmometerData.h */,
+				4152E70D26D543250096756C /* LSSphygmometerData.m */,
+				4152E70E26D543250096756C /* LSVibrationVoice.h */,
+				4152E70F26D543250096756C /* LSVibrationVoice.m */,
+				4152E71026D543250096756C /* LSWeightAppendData.h */,
+				4152E71126D543250096756C /* LSWeightAppendData.m */,
+				4152E71226D543250096756C /* LSWeightData.h */,
+				4152E71326D543250096756C /* LSWeightData.m */,
+				4152E71426D543250096756C /* NSMutableArray+QueueAdditions.h */,
+				4152E71526D543250096756C /* NSMutableArray+QueueAdditions.m */,
+			);
+			path = bean;
+			sourceTree = "<group>";
+		};
+		4152E71D26D543250096756C /* system */ = {
+			isa = PBXGroup;
+			children = (
+				4152E71E26D543250096756C /* LSBleConnector.h */,
+				4152E71F26D543250096756C /* LSBleConnector.m */,
+				4152E72026D543250096756C /* LSBleConnectorDelegate.h */,
+			);
+			path = system;
+			sourceTree = "<group>";
+		};
+		4152E72126D543250096756C /* utils */ = {
+			isa = PBXGroup;
+			children = (
+				4152E72226D543250096756C /* BleDebugLogger.h */,
+				4152E72326D543250096756C /* BleDebugLogger.m */,
+				4152E72426D543250096756C /* DataUtilities.h */,
+				4152E72526D543250096756C /* DataUtilities.m */,
+				4152E72626D543250096756C /* DispatchBasedTimer.h */,
+				4152E72726D543250096756C /* DispatchBasedTimer.m */,
+				4152E72826D543250096756C /* LSBleCommandProfiles.h */,
+				4152E72926D543250096756C /* LSBleCommandProfiles.m */,
+				4152E72A26D543250096756C /* LSBleDataParsingTools.h */,
+				4152E72B26D543250096756C /* LSBleDataParsingTools.m */,
+				4152E72C26D543250096756C /* LSFatParser.h */,
+				4152E72D26D543250096756C /* LSFatParser.m */,
+				4152E72E26D543250096756C /* LSFormatConverter.h */,
+				4152E72F26D543250096756C /* LSFormatConverter.m */,
+				4152E73026D543250096756C /* LSToolsCenter.h */,
+				4152E73126D543250096756C /* LSToolsCenter.m */,
+			);
+			path = utils;
+			sourceTree = "<group>";
+		};
 		58B511D21A9E6C8500147676 = {
 			isa = PBXGroup;
 			children = (
-
+				4152E6CB26D543250096756C /* BMI_LSBluetooth */,
+				4152E64926D53CE30096756C /* MedCheckPod */,
+				4152E57A26D538DC0096756C /* ObjC.h */,
+				4152E57926D538DC0096756C /* ObjC.m */,
 				F4FF95D6245B92E800C19C63 /* MedcheckSdk.swift */,
 				B3E7B5891CC2AC0600A0062D /* MedcheckSdk.m */,
 				F4FF95D5245B92E700C19C63 /* MedcheckSdk-Bridging-Header.h */,
-
 				134814211AA4EA7D00B7C361 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -122,10 +397,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-
 				F4FF95D7245B92E800C19C63 /* MedcheckSdk.swift in Sources */,
-				B3E7B58A1CC2AC0600A0062D /* MedcheckSdk.m in Sources */,
-
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,11 +510,9 @@
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = MedcheckSdk;
 				SKIP_INSTALL = YES;
-
 				SWIFT_OBJC_BRIDGING_HEADER = "MedcheckSdk-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-
 			};
 			name = Debug;
 		};
@@ -259,10 +529,8 @@
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = MedcheckSdk;
 				SKIP_INSTALL = YES;
-
 				SWIFT_OBJC_BRIDGING_HEADER = "MedcheckSdk-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-
 			};
 			name = Release;
 		};
@@ -288,6 +556,19 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		4152E6E426D543250096756C /* Model.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				4152E6E526D543250096756C /* Model.xcdatamodel */,
+			);
+			currentVersion = 4152E6E526D543250096756C /* Model.xcdatamodel */;
+			path = Model.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = 58B511D31A9E6C8500147676 /* Project object */;
 }
