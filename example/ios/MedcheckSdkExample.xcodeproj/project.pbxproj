@@ -266,7 +266,7 @@
 						TestTargetID = 13B07F861A680F5B00A75B9A;
 					};
 					13B07F861A680F5B00A75B9A = {
-						DevelopmentTeam = 2Z47T9V453;
+						DevelopmentTeam = 3XU2FJ59BN;
 						LastSwiftMigration = 1120;
 						ProvisioningStyle = Manual;
 					};
@@ -413,10 +413,12 @@
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-MedcheckSdkExample/Pods-MedcheckSdkExample-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/AccessibilityResources.bundle",
+				"${PODS_ROOT}/../../../ios/BMI_LSBluetooth/CoreData/Model.xcdatamodeld",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputPaths = (
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/AccessibilityResources.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Model.momd",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -561,11 +563,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "iPhone Developer: lan xuxu (F3NMZ7P7NG)";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer: lan xuxu (F3NMZ7P7NG)";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2Z47T9V453;
+				DEVELOPMENT_TEAM = 3XU2FJ59BN;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = MedcheckSdkExample/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
@@ -575,9 +577,9 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.app.worksafepass;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.reactnativemedchecksdk;
 				PRODUCT_NAME = MedcheckSdkExample;
-				PROVISIONING_PROFILE_SPECIFIER = WorkSafePass_Dev;
+				PROVISIONING_PROFILE_SPECIFIER = "Letsnurture developer Wild card";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -590,7 +592,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "iPhone Distribution";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = DTAAF5JVCL;
@@ -602,7 +604,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.app.worksafepass;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.reactnativemedchecksdk;
 				PRODUCT_NAME = MedcheckSdkExample;
 				PROVISIONING_PROFILE_SPECIFIER = WorkSafePass_AppStore;
 				SWIFT_VERSION = 5.0;

@@ -623,11 +623,12 @@ class ConnectScreen extends Component {
                       <Text> {item.deviceName} </Text>
                     </View>
                     {/* <View style={{ margin: 16 }}> */}
-                    <Button
+                    <Text
                       onPress={() => this._connect(item)}
-                      extraTextStyle={{ fontSize: 10 }}
-                      Text={`${item.state ? 'Paired' : 'Pair'}`}
-                    />
+                      style={{ fontSize: 10 }}
+                    >
+                      {`${item.state ? 'Paired' : 'Pair'}`}
+                    </Text>
                   </View>
                 );
               })}
