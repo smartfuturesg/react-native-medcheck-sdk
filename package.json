@@ -36,7 +36,10 @@
     "ios",
     "android"
   ],
-  "repository": "https://github.com/smartfuturesg/react-native-medcheck-sdk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smartfuturesg/react-native-medcheck-sdk.git"
+  },
   "author": "SF <sumit@oursmartfuture.com> (https://github.com/smartfuturesg)",
   "license": "MIT",
   "bugs": {
@@ -153,5 +156,9 @@
   "dependencies": {
     "events": "^3.3.0",
     "lodash": "^4.17.21"
+  },
+  "directories": {
+    "example": "example",
+    "lib": "lib"
   }
 }
