@@ -7,15 +7,8 @@ import com.facebook.react.bridge.Promise
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.content.DialogInterface
 import android.content.Intent
-import android.content.IntentSender
-import android.os.Bundle
 import android.os.Handler
-
-import androidx.annotation.NonNull
-//import android.support.v7.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatActivity
 
 import com.getmedcheck.lib.constant.Constants
 import com.getmedcheck.lib.listener.MedCheckCallback
@@ -28,19 +21,10 @@ import com.getmedcheck.lib.model.BloodPressureDataJSON
 import com.getmedcheck.lib.model.IDeviceData
 import com.getmedcheck.lib.utils.PermissionHelper
 
-//import com.google.android.gms.common.api.ApiException
-//import com.google.android.gms.common.api.CommonStatusCodes
-//import com.google.android.gms.common.api.ResolvableApiException
-//import com.google.android.gms.location.LocationRequest
-//import com.google.android.gms.location.LocationServices
-//import com.google.android.gms.location.LocationSettingsRequest
-//import com.google.android.gms.location.LocationSettingsResponse
-//import com.google.android.gms.location.LocationSettingsStatusCodes
-//import com.google.android.gms.location.SettingsClient
-//import com.google.android.gms.tasks.OnFailureListener
-//import com.google.android.gms.tasks.OnSuccessListener
-//import com.google.android.gms.tasks.Task
 import com.google.gson.Gson
+
+import java.util.Locale
+
 
 import android.text.TextUtils
 import android.util.Log
@@ -62,19 +46,38 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 
-import com.facebook.react.bridge.*
-import com.facebook.react.bridge.UiThreadUtil.runOnUiThread
-import com.lifesense.ble.bean.*
-import com.reactnativemedchecksdk.*
-import java.util.*
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.tasks.Task
+import no.nordicsemi.android.support.v18.scanner.ScanResult
+import com.google.android.gms.location.LocationServices
 
-class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+import com.google.android.gms.location.LocationSettingsResponse
+
+import com.google.android.gms.location.LocationSettingsRequest
+
+import com.google.android.gms.location.LocationRequest
+
+import com.facebook.react.bridge.ReadableMap
+
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.location.LocationSettingsStatusCodes
+
+import android.app.Activity.RESULT_OK
+import com.google.android.gms.tasks.OnCompleteListener
+
+import android.app.Activity
+import android.content.Context
+import android.content.IntentSender.SendIntentException
+import java.lang.ClassCastException
+import android.location.LocationManager
+
+
+class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), ActivityEventListener, OnCompleteListener<LocationSettingsResponse> {
 
   private var reactContext: ReactApplicationContext = reactContext
 
   private var myDeviceList: List<LsDeviceInfo>? = null
   private var mlsBleManager: LsBleManager? = null
-  //    private lateinit var mDeviceListItems: List<PairedDeviceListItem>
   private var mDeviceListItems: MutableList<PairedDeviceListItem>? = null
   private var mBroadcastType: BroadcastType? = null
   private var mScanDeviceType: MutableList<DeviceType>? = null
@@ -84,7 +87,6 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   private var mDeviceUserList: List<DeviceUserInfo>? = null
   private var userData: FamilyUser? = null
   private val wDataList_A3: MutableList<WeightData_A3> = ArrayList()
-//    val mDeviceList: MutableList<BluetoothDevice> = java.util.ArrayList()
 
   private val CELL_DEFAULT_HEIGHT = 200
   val DEVICE_BLOOD_PRESSURE = 1
@@ -94,7 +96,7 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   val DEVICE_BLOOD_SPO2 = 5
   val DEVICE_BODY_TEMPERATURE = 6
 
-  private val currentDeviceType = 3
+  private var currentDeviceType = DEVICE_BODY_MASS_INDEX
 
   var dX = 0f
   var dY = 0f
@@ -103,12 +105,17 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   private var hasScanResults = false
   private var scanResultTimer: Timer? = null
 
+  var mDeviceHashMap : HashMap<String, BleDevice> = HashMap<String, BleDevice> ()
+  private var mAllPermissionsReady = false
+  private  var userSelectedBleDevice:BleDevice? = null
+
   companion object {
     const val MODULE_NAME = "MedcheckSdk"
 
     const val INIT_ERROR = "INIT_ERROR"
     const val PAIR_ERROR = "PAIR_ERROR"
     const val UNKNOWN_ERROR = "UNKNOWN_ERROR"
+    const val DEVICE_DOWN_ERROR = "DEVICE_DOWN_ERROR"
 
     const val DATA_EVENT = "data"
     const val DEVICE_FOUND_EVENT = "deviceFound"
@@ -124,15 +131,53 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
         return MODULE_NAME
     }
 
-    // Example method
-    // See https://reactnative.dev/docs/native-modules-android
-    @ReactMethod
-    fun multiply(a: Int, b: Int, promise: Promise) {
-
-      promise.resolve(a * b)
-
+  private fun isLocationProviderEnabled(): Boolean {
+    if (currentActivity != null) {
+      val locationManager = currentActivity!!.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+      if (locationManager != null && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        return true
+      }
     }
+    return false
+  }
 
+
+  override fun onActivityResult(activity: Activity?, requestCode: Int, resultCode: Int, data: Intent?) {
+    if (requestCode == REQUEST_CHECK_SETTINGS) {
+      if (resultCode == RESULT_OK || isLocationProviderEnabled()) {
+        logData("enabled")
+        enableBluetooth()
+        mAllPermissionsReady = true
+      } else {
+        logData("denied" + ERR_USER_DENIED_CODE)
+      }
+    }
+  }
+
+  override fun onNewIntent(intent: Intent?) {}
+
+  override fun onComplete(task: Task<LocationSettingsResponse?>) {
+    try {
+      task.getResult(ApiException::class.java)
+      logData("already-enabled")
+      mAllPermissionsReady
+      enableBluetooth()
+    } catch (exception: ApiException) {
+      when (exception.statusCode) {
+        LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> try {
+          val resolvable = exception as ResolvableApiException
+          resolvable.startResolutionForResult(currentActivity, REQUEST_CHECK_SETTINGS)
+        } catch (sendEx: SendIntentException) {
+          logData("Failed to show dialog" + sendEx)
+        } catch (classCast: ClassCastException) {
+          logData("Internal error")
+        }
+        LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
+          logData("Settings change unavailable")
+        }
+      }
+    }
+  }
 
   override fun getConstants() = mapOf(
     "EVENTS" to listOf(
@@ -153,9 +198,9 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   }
 
   private fun logData(data:Any){
-    Log.d(MODULE_NAME, "======> ********************* <======")
-    Log.d(MODULE_NAME, "======> " + data + "          <======")
-    Log.d(MODULE_NAME, "======> ********************* <======")
+//    Log.d(MODULE_NAME, "======> ********************* <======")
+//    Log.d(MODULE_NAME, "======> " + data + "          <======")
+//    Log.d(MODULE_NAME, "======> ********************* <======")
   }
 
   private fun emitEvent(eventName: String, params: Any?) {
@@ -171,6 +216,21 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
       "deviceType" to device.deviceType,
       "modelNumber" to device.modelNumber,
       "peripheralIdentifier" to device.macAddress,
+      "deviceName" to device.deviceName,
+      "state" to state
+    ))
+
+  /**
+   * BleDevice - Medcheck
+   */
+  private fun mapDeviceDescriptionBledevice(device: BleDevice, state: Boolean): WritableMap =
+    Arguments.makeNativeMap(mapOf(
+      "id" to device.device.address,
+      "deviceId" to device.device.address,
+      "deviceSn" to device.device.address,
+      "deviceType" to device.device.type,
+      "modelNumber" to device.device.address,
+      "peripheralIdentifier" to device.device.address,
       "deviceName" to device.deviceName,
       "state" to state
     ))
@@ -227,37 +287,17 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
     ))
 
   private fun getBMIReadingList(wDataList_a3: List<WeightData_A3>?): MutableList<Any> {
-//        val modelBmiData = ArrayList<ModelBmiData>()
     val rnMultiDataList: MutableList<Any> = ArrayList()
 
     wDataList_a3?.forEachIndexed { index, weightdataA3 ->
       println("$weightdataA3 at $index")
       try {
-//                modelBmiData.add(getModelBmiDataFromReading(weightdataA3))
         rnMultiDataList.add(mapWeightData(getModelBmiDataFromReading(weightdataA3), weightdataA3))
       } catch (e: java.lang.Exception) {
         e.printStackTrace()
       }
     }
 
-//        if (wDataList_a3 != null && wDataList_a3.size > 0) { //            for (Iterator<String> iterator = list.iterator(); iterator.hasNext(); ) {
-////                String value = iterator.next();
-////                if (value.length() > 5) {
-////                    iterator.remove();
-////                }
-////            }
-//            val weightData_a3 = wDataList_a3.iterator()
-//            while (weightData_a3.hasNext()) {
-//                //            for (WeightData_A3 weightData_a3 : wDataList_a3) {
-//                try {
-//                    modelBmiData.add(getModelBmiDataFromReading(weightData_a3))
-//                } catch (e: java.lang.Exception) {
-////                    e.printStackTrace()
-//                }
-//            }
-//        }
-//        return modelBmiData
-    Log.d(MODULE_NAME, "RN DATA LIST${rnMultiDataList}")
     return rnMultiDataList
   }
 
@@ -265,8 +305,6 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
     val newReadingData: MutableList<Any> = getBMIReadingList(wDataList_a3)
     val readings = Arguments.makeNativeArray(newReadingData)
     emitEvent(DATA_EVENT, readings)
-    //TODO: Sending and printing the data gives crash
-//        Log.d(MODULE_NAME, "MULTI NEW READING IN OBJECT ${newReadingData}")
   }
 
 
@@ -327,24 +365,9 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
     if (objectData != null) {
       if (objectData is WeightData_A3) {
         try {
-          Log.d(MODULE_NAME,"OBJECT dateTime ${getModelBmiDataFromReading(objectData).dateTime}")
-          Log.d(MODULE_NAME,"OBJECT assignedUserId ${getModelBmiDataFromReading(objectData).assignedUserId}")
-          Log.d(MODULE_NAME,"OBJECT bmi ${getModelBmiDataFromReading(objectData).bmi}")
-          Log.d(MODULE_NAME,"OBJECT bmiWeight ${getModelBmiDataFromReading(objectData).bmiWeight}")
-          Log.d(MODULE_NAME,"OBJECT bmr ${getModelBmiDataFromReading(objectData).bmr}")
-          Log.d(MODULE_NAME,"OBJECT boneMass ${getModelBmiDataFromReading(objectData).boneMass}")
-          Log.d(MODULE_NAME,"OBJECT fatPer ${getModelBmiDataFromReading(objectData).fatPer}")
-          Log.d(MODULE_NAME,"OBJECT id ${getModelBmiDataFromReading(objectData).id}")
-          Log.d(MODULE_NAME,"OBJECT musclePer ${getModelBmiDataFromReading(objectData).musclePer}")
-          Log.d(MODULE_NAME,"OBJECT readingNotes ${getModelBmiDataFromReading(objectData).readingNotes}")
-          Log.d(MODULE_NAME,"OBJECT userId ${getModelBmiDataFromReading(objectData).userId}")
-          Log.d(MODULE_NAME,"OBJECT waterPer ${getModelBmiDataFromReading(objectData).waterPer}")
-
           emitEvent(DATA_EVENT, mapWeightData(getModelBmiDataFromReading(objectData), objectData))
-//                    showLiveReadingDialog(, false)
         } catch (e: java.lang.Exception) {
           e.printStackTrace()
-          Log.d(MODULE_NAME,"OBJECT DATA ${getModelBmiDataFromReading(objectData)}")
           showToast("Error BMI data")
         }
       }
@@ -371,71 +394,14 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   }
 
   private fun getUserInfo(): BleDeviceUserInfo {
-//        val userData = null
     val bleDeviceUserInfo = BleDeviceUserInfo()
     bleDeviceUserInfo.userName = "Ravi"
-//        if (userData != null) {
-//            when (userData.getGender()) {
-//                GENDER_MALE -> {
-//                    bleDeviceUserInfo.userGender = GenderType.MALE
-//                    bleDeviceUserInfo.athleteLevel = "0".toInt()
-//                }
-//                GENDER_FEMALE -> {
-//                    bleDeviceUserInfo.userGender = GenderType.FEMALE
-//                    bleDeviceUserInfo.athleteLevel = "0".toInt()
-//                }
-//                GENDER_ATHELET_MALE -> {
-//                    bleDeviceUserInfo.userGender = GenderType.MALE
-//                    bleDeviceUserInfo.athleteLevel = "1".toInt()
-//                }
-//                GENDER_ATHELET_FEMALE -> {
-//                    bleDeviceUserInfo.userGender = GenderType.FEMALE
-//                    bleDeviceUserInfo.athleteLevel = "1".toInt()
-//                }
-//                else -> {
-//                    bleDeviceUserInfo.userGender = GenderType.MALE
-//                    bleDeviceUserInfo.athleteLevel = "0".toInt()
-//                }
-//            }
-//        } else {
     bleDeviceUserInfo.userGender = GenderType.MALE
     bleDeviceUserInfo.athleteLevel = "0".toInt()
-//        }
-    /*SimpleDateFormat inputDateFormat = new SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault());
-    SimpleDateFormat outputDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
-    String outputDate = "";
     try {
-        Date inputDate = inputDateFormat.parse(userData.getBirthDate());
-        outputDate = outputDateFormat.format(inputDate);
-
-    } catch (ParseException e) {
-        e.printStackTrace();
-    }
-
-    String birthday = outputDate;
-    bleDeviceUserInfo.setBirthday(birthday);
-    //set user age
-    if (!TextUtils.isEmpty(birthday) && birthday.contains("-")) {
-        int yearIndex = birthday.indexOf("-");
-        String yearStr = birthday.substring(0, yearIndex);
-        int yearIntValue = Integer.parseInt(yearStr);
-        Calendar calendar = Calendar.getInstance();
-        int currentYear = calendar.get(Calendar.YEAR);
-        bleDeviceUserInfo.setUserAge(currentYear - yearIntValue);
-    } else {
-        bleDeviceUserInfo.setUserAge(18);
-    }*/try {
-//            if (userData.getHeight() != null && !TextUtils.isEmpty(userData.getHeight())) {
-//                bleDeviceUserInfo.userHeight = userData.getHeight().toFloat() / 100
-//            } else {
       bleDeviceUserInfo.userHeight = 1.65f
-//            }
-//            if (userData.getWeight() != null && !TextUtils.isEmpty(userData.getWeight())) {
-//                bleDeviceUserInfo.userWeight = userData.getWeight().toFloat()
-//            } else {
       bleDeviceUserInfo.setUserWeight(65F)
-//            }
     } catch (e: java.lang.Exception) {
       e.printStackTrace()
     }
@@ -462,11 +428,7 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
     val weightUserInfo = WeightUserInfo()
     weightUserInfo.age = if (userInfo.getUserAge() === 0) 25 else userInfo.getUserAge()
     weightUserInfo.productUserNumber = userNumber
-//        if (userInfo.getUserHeight() === 0) {
     weightUserInfo.height = 1.65f
-//        } else {
-//            weightUserInfo.height = userInfo.getUserHeight()
-//        }
     weightUserInfo.athleteActivityLevel = userInfo.getAthleteLevel()
     weightUserInfo.goalWeight = 10F
     if (userInfo.getWeightUnit() === WeightUnitType.KG) {
@@ -497,13 +459,8 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
       }
     }
     if (mDeviceListItems!!.size > 0) {
-      //TODO: SHOW DEVICE LIST
       logData(mDeviceListItems!!)
-//            mRvScanResult.setVisibility(View.GONE)
-//            mListView.setVisibility(View.VISIBLE)
-//            mLlScanButtons.setVisibility(View.GONE)
     }
-//        deviceAdapter.notifyDataSetChanged()
   }
 
   private fun intializeBMIReciever() {
@@ -532,10 +489,8 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
       override fun run() {
         if (wDataList_A3.size == 1) {
           showMeasuredDataDetails(wDataList_A3[0])
-//                    Log.d(MODULE_NAME, "SINGLE WEIGHT DATA ${wDataList_A3[0]}")
           wDataList_A3.clear()
         } else {
-//                    Log.d(MODULE_NAME, "MULTI WEIGHT DATA ${wDataList_A3}")
           showMeasuredReadingsDetailsInList(wDataList_A3)
           wDataList_A3.clear()
         }
@@ -545,15 +500,6 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
 
   private val mReceiveDataCallback: ReceiveDataCallback = object : ReceiveDataCallback() {
     override fun onReceiveWeightData_A3(wData: WeightData_A3) {
-
-      Log.d("Weight", "New Weight wData$wData")
-//            if (wData != null) {
-////                println("Receiving the measured data A3 fat scale=$wData")
-//                logData(wData)
-//                //TODO: SHOW MEASURED DETAILS FROM MACHINE
-////                showMeasuredDataDetails(wData, true)
-//                Log.d("Weight", "New Weight$wData")
-//            }x
       if (wData != null) {
         wDataList_A3.add(wData)
         if (wDataList_A3.size == 1) {
@@ -563,17 +509,12 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
     }
 
     override fun onReceiveUserInfo(proUserInfo: WeightUserInfo) {
-
-      Log.e("WeightUserInfo========", "product user info is :$proUserInfo")
-//            runOnUiThread { showloadAds() }
+//      Log.e("WeightUserInfo========", "product user info is :$proUserInfo")
     }
 
     //update and save device info ,if current connected device is generic fat and kitchen scale
     override fun onReceiveDeviceInfo(device: LsDeviceInfo) {
-//            restartTimer()
-      Log.d(MODULE_NAME, "the current connected device info is:$device")
       val runner = AsyncTaskRunner(reactContext, device)
-      Log.d("Weight", "New Weight" + device.deviceName)
       runner.execute()
     }
   }
@@ -601,7 +542,6 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
     if (userInfo.athleteLevel === 0) {
       weightUserInfo.isAthlete = false
     } else weightUserInfo.isAthlete = true
-    println("Pairing process, setting up the scale user information$weightUserInfo")
     mlsBleManager!!.setProductUserInfo(weightUserInfo)
   }
 
@@ -639,14 +579,8 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
 
     override fun onPairResults(lsDevice: LsDeviceInfo, status: Int) {
       runOnUiThread {
-        //                /
         if (lsDevice != null && status == 0) {
-//                    val modelBleDevice = ModelBleDevice()
-//                    modelBleDevice.setDeviceName(lsDevice.deviceName)
-//                    modelBleDevice.setStatus(Constants.BLE_STATUS_CONNECTED)
-//                    modelBleDevice.setMacAddress(lsDevice.macAddress)
           if (userData != null) {
-//                        val userData: FamilyUser = mUserArrayList.get(mSelectedUser)
             val bleDeviceUserInfo = BleDeviceUserInfo()
             bleDeviceUserInfo.userName = userData!!.getName()
             if (userData!!.getGender() != null) {
@@ -743,20 +677,15 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
               runner.execute()
               logData("Initiating User")
               initiateListener()
-//                            redirectToScreen(modelBleDevice)
               emitEvent(DEVICE_CONNECTED_EVENT, mapDeviceDescription(lsDevice, true))
             } else {
-//                            mSelectedUser = 0
               mlsBleManager!!.searchLsDevice(mSearchCallback, getDeviceTypes(), getBroadcastType())
               logData("Pairing process")
-//                            showPromptDialog(getResources().getString(R.string.prompt), getResources().getString(R.string.pairing_failed_try_again), ActionType.PAIRING_PROCESS)
             }
           }
         } else {
-//                    mSelectedUser = 0
           mlsBleManager!!.searchLsDevice(mSearchCallback, getDeviceTypes(), getBroadcastType())
           logData("Pairing process")
-//                    showPromptDialog(getResources().getString(R.string.prompt), getResources().getString(R.string.pairing_failed_try_again), ActionType.PAIRING_PROCESS)
         }
       }
     }
@@ -811,7 +740,6 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
       override fun run() {
         runOnUiThread(Runnable {
           if (!hasScanResults) {
-            //TODO: Hide loader
             showToast("Please make sure that bluetooth device is on and then try again.")
           }
         })
@@ -840,7 +768,6 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
         scanResultTimer!!.cancel()
       }
       runOnUiThread {
-        //TODO: Hide loader if visible
         if (!isDeviceExists(lsDevice.deviceName)) {
           Log.d(MODULE_NAME,"scan results $lsDevice")
           if (lsDevice.pairStatus == 1) {
@@ -850,24 +777,7 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
             rnDeviceList?.add(mapDeviceDescription(lsDevice, true))
             intializeBMIReciever()
           }
-//                    myDeviceList.add
-          Log.d(MODULE_NAME, rnDeviceList.toString())
-
-
-//                    val arguments = Arguments.createMap().apply {
-//                        putString("path", "general/authentication")
-//                        putArray("actions",Arguments.makeNativeArray(listOf(rnDeviceList)))
-//                    }
-
-//                    emitEvent(DEVICE_FOUND_EVENT, arguments)
-
           emitEvent(DEVICE_FOUND_EVENT, Arguments.makeNativeArray(rnDeviceList))
-
-//                    emitEvent(DATA_EVENT, Arguments.makeNativeMap(mapOf(
-//                            "data" to mappedEcgDATA,
-//                            "device" to mapDeviceDescription(mDevice!!, CONNECT))))
-//
-//                    myDeviceList!!.add(lsDevice)
           tempList!!.add(lsDevice)
         }
       }
@@ -897,13 +807,153 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
       mScanDeviceType!!.add(DeviceType.FAT_SCALE)
       mScanDeviceType!!.add(DeviceType.WEIGHT_SCALE)
     }
-    Log.d(MODULE_NAME,"Current scan device type：" + mScanDeviceType.toString())
     return mScanDeviceType
   }
 
   private fun getBroadcastType(): BroadcastType? {
     return mBroadcastType
   }
+
+  /**
+   * BGM/BPM class
+   * ------------------------------
+   */
+
+  private var mBluetoothAdapter: BluetoothAdapter? = null
+
+  private fun isBluetoothOn(): Boolean {
+    return mBluetoothAdapter != null && mBluetoothAdapter!!.isEnabled
+  }
+
+  private fun enableBluetooth() {
+    if (mBluetoothAdapter != null) {
+      mBluetoothAdapter!!.enable()
+      // wait for some time because bluetooth enable take some time
+      Handler().postDelayed({
+        if (isBluetoothOn()) {
+          mAllPermissionsReady = true
+          logData("Bluetooth ON, VIA enableBluetooth Method")
+        }
+      }, 100)
+    }
+  }
+
+  fun registerCallback() {
+    MedCheck.getInstance().registerCallBack(object : MedCheckCallback() {
+      override fun onTimeSyncCommand(state: Int) {
+        logData("onDeviceTimeSyncCommand" + state)
+      }
+
+      override fun onConnectionStateChange(bleDevice: BleDevice, status: Int) {
+        logData("onDeviceConnectionStateChange bleDevice" + bleDevice.toString() )
+        logData("onDeviceConnectionStateChange status" + status.toString() )
+        if (bleDevice.macAddress == userSelectedBleDevice!!.getMacAddress() && status == 1) {
+          //Now can read,clear and sync(Only for BPM)
+          emitEvent(DEVICE_CONNECTED_EVENT, mapDeviceDescriptionBledevice(bleDevice, true))
+        }
+      }
+
+      override fun onScanResult(scanResult: ScanResult) {
+        logData("onDeviceScanResult" + "\n" + scanResult.toString())
+        val bleDevice = BleDevice(scanResult.device)
+        mDeviceHashMap[bleDevice.device.address] = bleDevice
+
+        val bleDeviceList = mDeviceHashMap.values
+        logData("bleDeviceList"+ "\n" +  bleDeviceList)
+
+        for (itemBleDevice: BleDevice in bleDeviceList) {
+          rnDeviceList?.add(mapDeviceDescriptionBledevice(itemBleDevice, !bleDevice.device.bondState.equals(10)))
+        }
+
+        val eventDeviceList = Arguments.makeNativeArray(rnDeviceList)
+        emitEvent(DEVICE_FOUND_EVENT, eventDeviceList)
+
+      }
+
+      override fun onDataReadingStateChange(state: Int, message: String) {
+        logData("onDeviceDataReadingStateChange" + "\n" + state.toString() + "\n" + message.toString())
+      }
+
+      override fun onDataReceive(device: BluetoothDevice, deviceData: java.util.ArrayList<IDeviceData<*>>?, deviceType: String) {
+        var jsonString = ""
+        val gson = Gson()
+        if (deviceType == Constants.TYPE_BPM) {
+          val bloodPressureDataJSON = BloodPressureDataJSON()
+          bloodPressureDataJSON.type = Constants.TYPE_BPM
+          if (deviceData!!.size == 0 || deviceData == null) {
+            bloodPressureDataJSON.message = "No Data Found"
+            bloodPressureDataJSON.data = java.util.ArrayList()
+          } else {
+            bloodPressureDataJSON.message = "Data Found"
+            val dataArrayList = java.util.ArrayList<BloodPressureData>()
+            for (deviceDatum in deviceData) {
+              val bloodPressureData = deviceDatum as BloodPressureData
+              dataArrayList.add(bloodPressureData)
+            }
+            bloodPressureDataJSON.data = dataArrayList
+          }
+          jsonString = gson.toJson(bloodPressureDataJSON)
+        } else if (deviceType == Constants.TYPE_BGM) {
+          val bloodGlucoseDataJSON = BloodGlucoseDataJSON()
+          bloodGlucoseDataJSON.type = Constants.TYPE_BGM
+          if (deviceData!!.size == 0 || deviceData == null) {
+            bloodGlucoseDataJSON.message = "No Data Found"
+            bloodGlucoseDataJSON.data = java.util.ArrayList()
+          } else {
+            bloodGlucoseDataJSON.message = "Data Found"
+            val dataArrayList = java.util.ArrayList<BloodGlucoseData>()
+            for (deviceDatum in deviceData) {
+              val bloodGlucoseData = deviceDatum as BloodGlucoseData
+              dataArrayList.add(bloodGlucoseData)
+            }
+            bloodGlucoseDataJSON.data = dataArrayList
+          }
+          jsonString = gson.toJson(bloodGlucoseDataJSON)
+        }
+        emitEvent(DATA_EVENT, jsonString)
+      }
+
+      override fun onClearCommand(state: Int) {
+        logData("onDeviceClearCommand" + "\n" + state.toString())
+      }
+    })
+  }
+
+
+  private val SELF_MODULE_NAME = "RNAndroidLocationEnabler"
+  private val LOCATION_INTERVAL_DURATION = 10000
+  private val LOCATION_FAST_INTERVAL = 5000
+  private val TAG: String = MedcheckSdkModule::class.java.getName()
+  private val REQUEST_CHECK_SETTINGS = 42
+  private val DEFAULT_INTERVAL_DURATION = 10000
+  private val DEFAULT_FAST_INTERVAL_DURATION = DEFAULT_INTERVAL_DURATION / 2
+
+  private val ERR_USER_DENIED_CODE = "ERR00"
+  private val ERR_SETTINGS_CHANGE_UNAVAILABLE_CODE = "ERR01"
+  private val ERR_FAILED_OPEN_DIALOG_CODE = "ERR02"
+  private val ERR_INTERNAL_ERROR = "ERR03"
+
+
+
+  /**
+   * BGM/BPM class
+   * ------------------------------
+   * END
+   */
+
+  fun promptForEnableLocationIfNeeded() {
+    if (currentActivity == null) return
+    val locationRequest = LocationRequest.create()
+    locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+    locationRequest.setInterval(DEFAULT_INTERVAL_DURATION.toLong())
+    locationRequest.setFastestInterval(DEFAULT_FAST_INTERVAL_DURATION.toLong())
+    val builder = LocationSettingsRequest.Builder()
+      .addLocationRequest(locationRequest)
+    builder.setAlwaysShow(true)
+    val task = LocationServices.getSettingsClient(currentActivity!!).checkLocationSettings(builder.build())
+    task.addOnCompleteListener(this)
+  }
+
 
   @ReactMethod
   fun initialize(userDetails: ReadableMap, promise: Promise) {
@@ -918,6 +968,16 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
       val height : String? = userDetails.getString("height").toString()
       val gender : String? = userDetails.getString("gender").toString()
 
+      val deviceType : String? = userDetails.getInt("deviceType").toString()
+
+      if (deviceType == "1") {
+        currentDeviceType = DEVICE_BLOOD_PRESSURE
+      } else if (deviceType == "2") {
+        currentDeviceType = DEVICE_BLOOD_GLUCOSE
+      } else if (deviceType == "3") {
+        currentDeviceType = DEVICE_BODY_MASS_INDEX
+      }
+
       val user = FamilyUser()
       // if logged in user then set id to 0
       user.id = 0
@@ -931,16 +991,28 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
       userData = user
 
       logData(user)
+    if (currentDeviceType == DEVICE_BLOOD_GLUCOSE || currentDeviceType == DEVICE_BLOOD_PRESSURE) {
+      promptForEnableLocationIfNeeded()
+      registerCallback()
+      mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+      if (!isBluetoothOn()) {
+        showToast("Please turn on bluetooth")
+        promise.resolve(mapInitDescription(false))
+      } else {
+        promise.resolve(mapInitDescription(true))
+      }
+    }
 
+    if (currentDeviceType == DEVICE_BODY_MASS_INDEX) {
       setUpForBMI()
-
-
       if (!mlsBleManager!!.isOpenBluetooth) {
         showToast("Please turn on bluetooth")
         promise.resolve(mapInitDescription(false))
       } else {
         promise.resolve(mapInitDescription(true))
       }
+    }
+
     } catch (e: Exception) {
       promise.reject(INIT_ERROR, e)
     }
@@ -949,22 +1021,35 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   @ReactMethod
   fun startScan(promise: Promise) {
     try {
+
       Log.i(MODULE_NAME, "Start scanning for devices.")
-      if (!mlsBleManager!!.isSupportLowEnergy) {
-        showToast("Unsupported device")
+
+      if (currentDeviceType == DEVICE_BODY_MASS_INDEX) {
+        if (!mlsBleManager!!.isSupportLowEnergy) {
+          showToast("Unsupported device")
+        }
+
+        if (!mlsBleManager!!.isOpenBluetooth) {
+          showToast("Please turn on bluetooth")
+        } else {
+          hasScanResults = false
+          //search lifesense bluetooth
+          rnDeviceList.clear()
+          tempList!!.clear()
+          mlsBleManager!!.searchLsDevice(mSearchCallback, getDeviceTypes(), getBroadcastType())
+
+          initScanResultsTimer(0)
+        }
       }
 
-      if (!mlsBleManager!!.isOpenBluetooth) {
-        showToast("Please turn on bluetooth")
-      } else {
-        hasScanResults = false
-        //search lifesense bluetooth
-        rnDeviceList.clear()
-        tempList!!.clear()
-        mlsBleManager!!.searchLsDevice(mSearchCallback, getDeviceTypes(), getBroadcastType())
-
-        initScanResultsTimer(0)
+      if (currentDeviceType == DEVICE_BLOOD_GLUCOSE || currentDeviceType == DEVICE_BLOOD_PRESSURE) {
+        if (isBluetoothOn()) {
+          mDeviceHashMap.clear()
+          MedCheck.getInstance().startScan(reactContext)
+        }
       }
+
+      //If there is any error, it will directly go to exception
       promise.resolve(mapMessageStats("SCAN_BEGAN"))
     } catch (e: Exception) {
       promise.reject(UNKNOWN_ERROR, e)
@@ -975,6 +1060,14 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   fun stopScan(promise: Promise) {
     try {
       Log.i(MODULE_NAME, "Stop scanning for devices.")
+      if (currentDeviceType == DEVICE_BLOOD_GLUCOSE || currentDeviceType == DEVICE_BLOOD_PRESSURE) {
+        MedCheck.getInstance().stopScan(reactContext)
+      }
+
+      if (currentDeviceType == DEVICE_BODY_MASS_INDEX) {
+        mlsBleManager?.stopSearch()
+      }
+
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject(UNKNOWN_ERROR, e)
@@ -985,50 +1078,50 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   fun connectToDevice(uuid: String,promise: Promise) {
     try {
 
-      Log.i(MODULE_NAME, "Connect device with" + uuid  + "address.")
-      Log.i(MODULE_NAME, "UUID device with $uuid address.")
+      if (currentDeviceType == DEVICE_BLOOD_GLUCOSE || currentDeviceType == DEVICE_BLOOD_PRESSURE) {
+        val listOnNativeSideBle = mDeviceHashMap.values
+        var deviceList: List<BleDevice> = listOnNativeSideBle!!.filter { s -> s.deviceName == uuid }
 
-      if(tempList == null || tempList!!.isEmpty()) {
-        promise.resolve(mapMessageStats("UNKNOWN_DEVICE"))
-        return
+        val mBleDevice = deviceList[0]
+        userSelectedBleDevice = mBleDevice
+
+        if (mBleDevice == null || !mAllPermissionsReady || TextUtils.isEmpty(mBleDevice.getMacAddress())) {
+          promise.reject(DEVICE_DOWN_ERROR,"Cannot pair to inactive device")
+          return
+        } else {
+          MedCheck.getInstance().connect(reactContext, mBleDevice.getMacAddress())
+        }
       }
 
-      // to get the result as list
-      var deviceList: List<LsDeviceInfo> = tempList!!.filter { s -> s.deviceName == uuid }
-
-      val device = deviceList[0]
-
-      Log.d(MODULE_NAME,"" + "====>" + device + "<====" )
-
-      mlsBleManager!!.stopSearch()
-      //TODO: Show pairing sign
-      Log.d(MODULE_NAME,"select device info :" + device.toString())
-      if (device.getPairStatus() == 1) { //set custom broacast Id to device,if need
-
-        //User setting information pairing
-        if (DeviceTypeConstants.FAT_SCALE == device.getDeviceType()) {
-          setWeightUserInfoOnPairingMode()
-          //show pairing menu
-          mlsBleManager!!.startPairing(device, mPairCallback)
+      if (currentDeviceType == DEVICE_BODY_MASS_INDEX) {
+        if(tempList == null || tempList!!.isEmpty()) {
+          promise.resolve(mapMessageStats("UNKNOWN_DEVICE"))
+          return
         }
-      } else if (device.getProtocolType() == "A4" || device.getProtocolType() == "GENERIC_FAT") {
-        Log.d(MODULE_NAME, "======> add device information <======")
-        Log.d(MODULE_NAME, "======> " + device + "     <======")
-        Log.d(MODULE_NAME, "======> add device information <======")
-        device.setDeviceId(device.getDeviceName()) //set the device id to save ,when
-        val runner = AsyncTaskRunner(reactContext, device)
-        runner.execute()
-      } else {
-        val broadcastId: String = device.getBroadcastID()
-        val deviceInfo = SettingInfoManager.getPairedDeviceInfoByBroadcastID(reactContext, broadcastId)
-        if (deviceInfo != null) {
-          Log.d(MODULE_NAME, "======> paired device information <======")
-          Log.d(MODULE_NAME, "======> " + deviceInfo + "        <======")
-          Log.d(MODULE_NAME, "======> paired device information <======")
+
+        // to get the result as list
+        var deviceList: List<LsDeviceInfo> = tempList!!.filter { s -> s.deviceName == uuid }
+        val device = deviceList[0]
+        mlsBleManager!!.stopSearch()
+        if (device.getPairStatus() == 1) { //set custom broacast Id to device,if need
+          //User setting information pairing
+          if (DeviceTypeConstants.FAT_SCALE == device.getDeviceType()) {
+            setWeightUserInfoOnPairingMode()
+            //show pairing menu
+            mlsBleManager!!.startPairing(device, mPairCallback)
+          }
+        } else if (device.getProtocolType() == "A4" || device.getProtocolType() == "GENERIC_FAT") {
+          device.setDeviceId(device.getDeviceName()) //set the device id to save ,when
+          val runner = AsyncTaskRunner(reactContext, device)
+          runner.execute()
         } else {
-          Log.d(MODULE_NAME, "======> unpaired device information <======")
-          Log.d(MODULE_NAME, "======> " + deviceInfo + "          <======")
-          Log.d(MODULE_NAME, "======> unpaired device information <======")
+          val broadcastId: String = device.getBroadcastID()
+          val deviceInfo = SettingInfoManager.getPairedDeviceInfoByBroadcastID(reactContext, broadcastId)
+          if (deviceInfo != null) {
+            logData("deviceInfo" + deviceInfo)
+          } else {
+            logData("deviceInfo" + deviceInfo)
+          }
         }
       }
 
@@ -1041,16 +1134,11 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   @ReactMethod
   fun pairUser(user: ReadableMap,promise: Promise) {
     try {
-      Log.i(MODULE_NAME, "Start data collection.")
-//            if (mUserArrayList.get(i) != null && !TextUtils.isEmpty(mUserArrayList.get(i).getName())) {
-//                mSelectedUser = i
       if(mDeviceUserList != null) {
         val userNumber = user.getInt("key")
         val userName = user.getString("value")
         mlsBleManager!!.bindDeviceUser(userNumber, userName)
       }
-
-//            }
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject(UNKNOWN_ERROR, e)
@@ -1061,7 +1149,16 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   fun startCollection(promise: Promise) {
     try {
       Log.i(MODULE_NAME, "Start data collection.")
-      intializeBMIReciever()
+      if (currentDeviceType == DEVICE_BODY_MASS_INDEX) {
+        intializeBMIReciever()
+      } else {
+        if (userSelectedBleDevice == null || !mAllPermissionsReady || TextUtils.isEmpty(userSelectedBleDevice!!.getMacAddress())) {
+          promise.reject(DEVICE_DOWN_ERROR,"Cannot read from inactive device")
+          return
+        }
+        MedCheck.getInstance().writeCommand(reactContext, userSelectedBleDevice!!.getMacAddress())
+      }
+
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject(UNKNOWN_ERROR, e)
@@ -1071,7 +1168,38 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   @ReactMethod
   fun stopCollection(promise: Promise) {
     try {
-      Log.i(MODULE_NAME, "Stop data collection.")
+      promise.resolve(null)
+    } catch (e: Exception) {
+      promise.reject(UNKNOWN_ERROR, e)
+    }
+  }
+
+  @ReactMethod
+  fun clearCollection(promise: Promise) {
+    try {
+      if(currentDeviceType == DEVICE_BLOOD_PRESSURE || currentDeviceType == DEVICE_BLOOD_GLUCOSE) {
+        if (userSelectedBleDevice == null || !mAllPermissionsReady || TextUtils.isEmpty(userSelectedBleDevice!!.getMacAddress())) {
+          promise.reject(DEVICE_DOWN_ERROR,"Cannot clear from inactive device")
+          return
+        }
+        MedCheck.getInstance().clearDevice(reactContext, userSelectedBleDevice!!.getMacAddress())
+      }
+      promise.resolve(null)
+    } catch (e: Exception) {
+      promise.reject(UNKNOWN_ERROR, e)
+    }
+  }
+
+  @ReactMethod
+  fun timeSyncBPMDevice(promise: Promise) {
+    try {
+      if(currentDeviceType == DEVICE_BLOOD_PRESSURE) {
+        if (userSelectedBleDevice == null || !mAllPermissionsReady || TextUtils.isEmpty(userSelectedBleDevice!!.getMacAddress())) {
+          promise.reject(DEVICE_DOWN_ERROR,"Cannot clear from inactive device")
+          return
+        }
+        MedCheck.getInstance().timeSyncDevice(reactContext, userSelectedBleDevice!!.getMacAddress())
+      }
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject(UNKNOWN_ERROR, e)
@@ -1081,36 +1209,38 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
   @ReactMethod
   fun disconnectFromDevice(broadcastID: String?,promise: Promise) {
     try {
-      Log.i(MODULE_NAME, "disconnectFromDevice")
-      //LONG CLICK ON PAIRED DEVICE TO DISCONNECT/REMOVE/DESTROY DEVICE FROM PAIRED LIST
-//            val tempItem = parent.getAdapter().getItem(position) as PairedDeviceListItem
-//            SHOW IN RN TO REMOVE DEVICE AND PASS THE BROADCAST ID
-//            val title = tempItem.deviceInfo.deviceName + tempItem.deviceInfo.broadcastID
-//            val msg: String = mMultiLanguageSupport.getLabel(UILabelsKeys.DO_YOU_REALLY_WANT_TO_DELETE_IT)
-      val delBroadcastId = broadcastID
-
-      val delete = SettingInfoManager.deletePairedDeviceInfo(reactContext, delBroadcastId)
-
-      if (mlsBleManager != null) {
-        mlsBleManager!!.stopSearch()
-        mlsBleManager!!.stopDataReceiveService()
-        if (scanResultTimer != null) {
-          scanResultTimer!!.cancel()
+      if(currentDeviceType == DEVICE_BLOOD_PRESSURE || currentDeviceType == DEVICE_BLOOD_GLUCOSE) {
+        if (userSelectedBleDevice == null || !mAllPermissionsReady || TextUtils.isEmpty(userSelectedBleDevice!!.getMacAddress())) {
+          promise.reject(DEVICE_DOWN_ERROR,"Cannot clear from inactive device")
+          return
         }
+
+        MedCheck.getInstance().disconnectDevice(reactContext)
       }
-      MedCheck.getInstance().unregisterCallBack(reactContext)
 
-      if (delete) { //update the ble measured device list
-        mlsBleManager!!.deleteMeasureDevice(delBroadcastId)
-        //REMOVE DEVICE FROM LIST
-        //SHOW EVENT THAT DEVICE IS DELETED
-        showToast("DELETE WAS SUCCESSFULL FOR" + delBroadcastId);
-        showToast("DELETE WAS SUCCESSFULL" + delBroadcastId)
+      if (currentDeviceType == DEVICE_BODY_MASS_INDEX) {
+        val delBroadcastId = broadcastID
 
-        if (mDeviceListItems!!.size == 0) {
+        val delete = SettingInfoManager.deletePairedDeviceInfo(reactContext, delBroadcastId)
+
+        if (mlsBleManager != null) {
+          mlsBleManager!!.stopSearch()
           mlsBleManager!!.stopDataReceiveService()
+          if (scanResultTimer != null) {
+            scanResultTimer!!.cancel()
+          }
+        }
+
+        if (delete) {
+          //update the ble measured device list
+          //REMOVE DEVICE FROM LIST
+          //SHOW EVENT THAT DEVICE IS DELETED
+          if (mDeviceListItems!!.size == 0) {
+            mlsBleManager!!.stopDataReceiveService()
+          }
         }
       }
+
       promise.resolve(Arguments.makeNativeMap(mapOf(
         "delete" to true
       )))
@@ -1118,6 +1248,4 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
       promise.reject(UNKNOWN_ERROR, e)
     }
   }
-
-
 }

@@ -11,10 +11,6 @@ import {
 
 import styles from './style';
 
-// import MedKit from '../../Native/MedcheckKit';
-// import SimpleToast from 'react-native-simple-toast';
-// import { normalize } from '../../utilities/responsive-fonts';
-// import Button from './../../Component/Button';
 import _ from 'lodash';
 import MedcheckSdk from 'react-native-medcheck-sdk';
 
@@ -33,13 +29,13 @@ export interface WScaleDevice {
 
 export interface BmiReading {
   device_data: {
-    bmi: String;
-    bmi_weight: String;
-    bmr: String;
-    bone_mass: String;
-    fat_per: String;
-    muscle_per: String;
-    water_per: String;
+    bmi: String,
+    bmi_weight: String,
+    bmr: String,
+    bone_mass: String,
+    fat_per: String,
+    muscle_per: String,
+    water_per: String,
   };
   device_id: String;
   is_manual: String;
@@ -53,6 +49,12 @@ export interface WScaleUser {
   key: String;
   value: String;
 }
+
+const DEVICE_TYPE = {
+  DEVICE_BLOOD_PRESSURE: 1,
+  DEVICE_BLOOD_GLUCOSE: 2,
+  DEVICE_BODY_MASS_INDEX: 3,
+};
 
 const medKit = new MedcheckSdk();
 class ConnectScreen extends Component {
@@ -71,6 +73,7 @@ class ConnectScreen extends Component {
     devices: [],
     userList: [],
     isDialogVisible: false,
+    readings: null,
     bmi_weight: '',
     bmi: '',
     muscle_percent: '',
@@ -88,6 +91,7 @@ class ConnectScreen extends Component {
         [
           PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         ],
         {
           title: 'App requires access to location',
@@ -176,38 +180,14 @@ class ConnectScreen extends Component {
     if (typeof readings === []) {
       console.log('obj is array----==============');
       this.setState({
-        isDialogVisible: true,
-        bmi_weight: readings[0]._bmiWeight,
-        bmi: readings[0]._bmi,
-        muscle_percent: readings[0]._musclePer,
-        fat_per: readings[0]._fatPer,
-        bone_mass: readings[0]._boneMass,
-        water_per: readings[0]._waterPer,
+        readings: readings,
       });
-      this.WS_SendBmiDataToServer();
     } else {
       console.log(readings.data);
       this.setState({
-        isDialogVisible: true,
-        bmi_weight: readings._bmiWeight,
-        bmi: readings._bmi,
-        muscle_percent: readings._musclePer,
-        fat_per: readings._fatPer,
-        bone_mass: readings._boneMass,
-        water_per: readings._waterPer,
+        readings: readings,
       });
-      this.WS_SendBmiDataToServer();
     }
-
-    // readings.data.device_data.bmi
-    // readings.data.device_data.bmr
-    // readings.data.device_data.water_per
-
-    // readings.data.device_data.bone_mass
-    // readings.data.device_data.fat_per
-
-    // readings.data.device_data.bmi_weight
-    // readings.data.device_data.muscle_per
   };
 
   _handleUserList = (userList: [WScaleUser]) => {
@@ -258,56 +238,24 @@ class ConnectScreen extends Component {
       'userListFound',
       this._handleUserList
     );
-
-    // console.log('LAST CONNECTED DEVICES', this.props.lastDeviceList);
-    // if (Platform.OS === 'ios') {
-    //   this.startSearch();
-    // } else {
-    //   this.requestCameraPermission();
-    // }
   }
 
-  WS_SendBmiDataToServer = async () => {
-    console.log(
-      'WS_SendBmiDataToServer',
-      this.state.bmi_weight,
-      this.state.bmi
-    );
-    try {
-      const bmiJSON = JSON.stringify({
-        data: {
-          user_id: '123',
-          weight: this.state.bmi_weight,
-          bmi: this.state.bmi,
-          bodyfat: this.state.fat_per,
-          moisturerate: this.state.water_per,
-          bonemass: this.state.bone_mass,
-          basalmetabolism: '',
-          whethertowearshoes: '',
-          musclerate: this.state.muscle_percent,
-        },
-      });
-      console.log(`bmiJSON`, bmiJSON);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   startSearch = () => {
-    var userDetails = {
+    var config = {
       id: 214,
       first_name: 'john',
       dob: '08-Aug-1997',
       weight: 80,
       height: '160',
       gender: 'm',
+      deviceType: DEVICE_TYPE.DEVICE_BLOOD_GLUCOSE,
     };
     medKit
-      .initialize(userDetails)
+      .initialize(config)
       .then((res) => {
         console.log('TCL: componentName -> componentDidMount -> res', res);
         if (!res.status) {
-          Alert.alert('Please turn on bluetooth');
+          // Alert.alert('Please turn on bluetooth');
 
           this.setState({
             message: res.message,
@@ -353,14 +301,6 @@ class ConnectScreen extends Component {
     if (!item.state) {
       Alert.alert('Connect device');
       medKit.connectToDevice(item);
-      // Alert.alert('Pairing device')
-      // // ecgHandler.startCollection()
-      // medKit.connectToDevice(item)
-      // this.props.saveLastConnectedDevice(item)
-      // this.setState({
-      //   message: "Supported Devices",
-      //   // loading: true
-      // });
     } else {
       Alert.alert('Start Service');
       medKit.startCollection();
@@ -368,6 +308,16 @@ class ConnectScreen extends Component {
   };
 
   renderBmiDetailsPopup() {
+    const readingContainer = {
+      alignItems: 'center',
+      backgroundColor: '#E78491',
+    };
+    const readingText = {
+      color: 'white',
+      alignSelf: 'center',
+      marginTop: 16,
+    };
+
     return (
       <View style={[styles.container]}>
         <TouchableOpacity
@@ -377,167 +327,9 @@ class ConnectScreen extends Component {
         >
           <View style={[styles.modal_container]}>
             <View style={styles.modal_body}>
-              <View
-                style={{
-                  // justifyContent: 'center',
-                  alignItems: 'center',
-                  // margin: 0,
-                  backgroundColor: '#E78491',
-                  // flex: 0.6,
-                }}
-              >
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 24,
-                  }}
-                >
-                  {'Weight & BMI Result'}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 24,
-
-                    alignSelf: 'center',
-                    marginTop: 16,
-                  }}
-                >
-                  {this.state.bmi_weight}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 16,
-
-                    alignSelf: 'center',
-                    marginTop: 0,
-                  }}
-                >
-                  {this.state.bmi_weight == '' ? '' : 'CURRENT | KG'}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 24,
-
-                    alignSelf: 'center',
-                    marginTop: 8,
-                  }}
-                >
-                  {this.state.bmi}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 16,
-
-                    alignSelf: 'center',
-                    marginTop: 0,
-                  }}
-                >
-                  {this.state.bmi == '' ? '' : 'BMI'}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 24,
-
-                    alignSelf: 'center',
-                    marginTop: 8,
-                  }}
-                >
-                  {this.state.muscle_percent}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 16,
-
-                    alignSelf: 'center',
-                    marginTop: 0,
-                  }}
-                >
-                  {this.state.muscle_percent == '' ? '' : 'MuscleMassRatio'}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 24,
-
-                    alignSelf: 'center',
-                    marginTop: 8,
-                  }}
-                >
-                  {this.state.fat_per}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 16,
-
-                    alignSelf: 'center',
-                    marginTop: 0,
-                  }}
-                >
-                  {this.state.fat_per == '' ? '' : 'BodyFatRatio'}
-                </Text>
-
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 24,
-
-                    alignSelf: 'center',
-                    marginTop: 8,
-                  }}
-                >
-                  {this.state.bone_mass}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 16,
-
-                    alignSelf: 'center',
-                    marginTop: 0,
-                  }}
-                >
-                  {this.state.bone_mass == '' ? '' : 'BoneDensity'}
-                </Text>
-
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 24,
-
-                    alignSelf: 'center',
-                    marginTop: 8,
-                  }}
-                >
-                  {this.state.water_per}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontSize: 16,
-
-                    alignSelf: 'center',
-                    marginTop: 0,
-                  }}
-                >
-                  {this.state.water_per == '' ? '' : 'BodywaterRatio'}
-                </Text>
-                <Text
-                  onPress={() => this.setState({ isDialogVisible: false })}
-                  style={{
-                    fontSize: 20,
-                    margin: 8,
-                    alignSelf: 'center',
-                    width: 150,
-                  }}
-                >
-                  {'Ok'}
+              <View style={readingContainer}>
+                <Text style={readingText}>
+                  {JSON.stringify(this.state.readings)}
                 </Text>
               </View>
             </View>
@@ -655,7 +447,15 @@ class ConnectScreen extends Component {
                       {'**'}
                     </Text>
                     <View style={{ flex: 1, flexDirection: 'column' }}>
-                      <Text> {'Weight & BMI Scale'} </Text>
+                      <Text>
+                        {item.deviceName === 'HL158HC BLE' ||
+                        item.deviceName === 'SFBPBLE'
+                          ? 'Blood Pressure'
+                          : item.deviceName === 'HL568HC BLE' ||
+                            item.deviceName === 'SFBGBLE'
+                          ? 'Glucose'
+                          : 'Weight & BMI Scale'}
+                      </Text>
                       <Text> {item.deviceName} </Text>
                     </View>
                     {/* <View style={{ margin: 16 }}> */}
@@ -690,9 +490,9 @@ class ConnectScreen extends Component {
                   </TouchableOpacity>
                 );
               })}
+              {this.state.readings ? this.renderBmiDetailsPopup() : null}
             </ScrollView>
           </View>
-          {this.state.isDialogVisible ? this.renderBmiDetailsPopup() : null}
         </View>
       </>
     );

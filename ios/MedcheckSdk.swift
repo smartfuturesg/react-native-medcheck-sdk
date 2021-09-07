@@ -2,20 +2,7 @@ import Foundation
 import CoreBluetooth
 import QuartzCore
 import CoreData
-
-//extension String {
-//  var ns: NSString {
-//    return self as NSString
-//  }
-//}
-//
-//extension DateFormatter
-//{
-//  func setLocal() {
-//    self.locale = Locale.init(identifier: "en_US_POSIX")
-//    self.timeZone = TimeZone(abbreviation: "UTC")!
-//  }
-//}
+import UIKit
 
 struct ContactDetail {
   var id = "23423234"
@@ -84,8 +71,13 @@ class MedcheckSdk: RCTEventEmitter {
   static let SCAN_FINISHED_EVENT = "scanFinished"
   static let COLLECTION_FINISHED_EVENT = "collectionFinished"
   static let USER_LIST_FOUND_EVENT = "userListFound"
+    
+  let DEVICE_BLOOD_PRESSURE = 1
+  let DEVICE_BLOOD_GLUCOSE = 2
+  let DEVICE_BODY_MASS_INDEX = 3
   
   //Local Variables
+    
   let lsBleManager = LSBLEDeviceManager.defaultLsBle()
   var lsDatabaseManager: LSDatabaseManager?
   var lsCurrentDeviceUser: DeviceUser?
@@ -109,7 +101,13 @@ class MedcheckSdk: RCTEventEmitter {
   var arrNewlyFetchedResults = [[String : AnyObject]]()
   
   var currentWeightData: LSWeightData?
-  
+    
+    // 2021
+    var bluetoothManager : BPMDataManager?
+    var currentDeviceType = 1
+    var newReadingStart = false
+    var nearbyPeripheralInfos : [CBPeripheral:Dictionary<String, AnyObject>] = [CBPeripheral:Dictionary<String, AnyObject>]()
+    var userSelectedBleDevice : CBPeripheral?
   
   override func constantsToExport() -> [AnyHashable : Any] {
     return [
@@ -134,6 +132,21 @@ class MedcheckSdk: RCTEventEmitter {
       "state": isDeviceAlreadyPaired,
     ]
   }
+    
+    private func mapDeviceDescriptionBGM(_ peripheral: CBPeripheral, isDeviceAlreadyPaired: Bool) -> [String: Any] {
+        
+      return [
+        "id": peripheral.identifier.uuidString,
+        "deviceId": peripheral.identifier.uuidString,
+        "deviceSn": "",
+        "deviceType": "",
+        "modelNumber": "",
+        "peripheralIdentifier": peripheral.identifier.uuidString,
+        "deviceName": peripheral.name,
+        "state": peripheral.state.rawValue,
+        
+      ]
+    }
  
   
   private func mapUser(_ key: String, value: String) -> [String: Any] {
@@ -196,58 +209,64 @@ class MedcheckSdk: RCTEventEmitter {
     var status = false
     do {
       
-      self.lsDatabaseManager = LSDatabaseManager.default()
-      self.lsDatabaseManager?.databaseDelegate = self
-      self.lsDatabaseManager?.createManagedObjectContext(withDocumentName: "LifesenseBleDatabase")
-      
-//      print("userDetails", userDetails)
-//      print(userDetails["id"].debugDescription)
-//      print(userDetails["first_name"])
-//      print(userDetails["dob"])
-//      print(userDetails["weight"])
-//      print(userDetails["height"])
-//      print(userDetails["gender"])
-      
-//      guard
         let id = userDetails["id"]
         let name = userDetails["first_name"]
         let dob = userDetails["dob"]
         let weight = userDetails["weight"]
         let height = userDetails["height"]
         let gender = userDetails["gender"]
-//        else {
-//          print("Provided user format is not supported")
-//          response = "UNSUPPORTED_USER"
-//          resolve(["message": response, "status": status ])
-//          return
-//      }
+        let getDeviceType = "\(userDetails["deviceType"] ?? "")"
+        
+        print("getDeviceType", getDeviceType)
+        
+        if (getDeviceType == "1") {
+          currentDeviceType = DEVICE_BLOOD_PRESSURE
+        } else if (getDeviceType == "2") {
+          currentDeviceType = DEVICE_BLOOD_GLUCOSE
+        } else if (getDeviceType == "3") {
+          currentDeviceType = DEVICE_BODY_MASS_INDEX
+        }
+                
+        if (currentDeviceType == DEVICE_BLOOD_GLUCOSE || currentDeviceType == DEVICE_BLOOD_PRESSURE) {
+            self.bluetoothManager?.arrBLEList.removeAll()
+            self.bluetoothManager?.macAddress.removeAll()
+            self.bluetoothManager?.nearbyPeripheralInfos.removeAll()
+            
+            if self.bluetoothManager?.connectedPeripheral != nil {
+//                self.bluetoothManager.disconnectPeripheral()
+                if !(self.bluetoothManager?.arrBLEList.contains((self.bluetoothManager?.connectedPeripheral!)!))! {
+                    if let address = UserDefaults.standard.value(forKey: "lastConnectedMACAddress") as? String {
+                        self.bluetoothManager?.arrBLEList.append((self.bluetoothManager?.connectedPeripheral!)!)
+                        if !(self.bluetoothManager?.macAddress.contains(address))! {
+                            self.bluetoothManager?.macAddress.append(address)
+                        }
+                    }
+                }
+            }
+        }
       
       selectedUserDetails = ContactDetail(id: "\(id ?? "unknown")", user_id: "\(id ?? "unknown")", name: "\(name ?? "unknown")", dob: "\(dob ?? "1998-01-01")", weight: "\(weight ?? "70")", height: "\(height ?? "6")", is_diabetics: "", waist: "", gender: "\(gender ?? "m")")
       
-//      selectedUserDetails?.id = "\(id ?? "unknown")"
-//      selectedUserDetails?.user_id = "\(id ?? "unknown")"
-//      selectedUserDetails?.name = "\(name ?? "unknown")"
-//      selectedUserDetails?.dob = "\(dob ?? "1998-01-01")"
-//      selectedUserDetails?.weight = "\(weight ?? "70")"
-//      selectedUserDetails?.height = "\(height ?? "6")"
-//      selectedUserDetails?.is_diabetics = ""
-//      selectedUserDetails?.waist = ""
-//      selectedUserDetails?.gender = "\(gender ?? "m")"
       
-      print("=====> \(String(describing: selectedUserDetails)) <=====")
-      
-      if(lsBleManager!.isBluetoothPowerOn) {
-        print("BLUETOOTH ON")
-        status = true
-//        resolve(["status" : true])
-      } else {
-        status = false
-        print("BLUETOOTH OFF")
-//        resolve(["status" : false])
-      }
+        if (currentDeviceType == DEVICE_BODY_MASS_INDEX) {
+            self.lsDatabaseManager = LSDatabaseManager.default()
+            self.lsDatabaseManager?.databaseDelegate = self
+            self.lsDatabaseManager?.createManagedObjectContext(withDocumentName: "LifesenseBleDatabase")
+        }
+        
+        if(lsBleManager!.isBluetoothPowerOn) {
+          print("BLUETOOTH ON")
+          status = true
+        } else {
+          status = false
+          print("BLUETOOTH OFF")
+        }
+
       
       try ObjC.catchException {
-        self.loadDataFromDatabase()
+        if (self.currentDeviceType == self.DEVICE_BODY_MASS_INDEX) {
+            self.loadDataFromDatabase()
+        }
       }
       resolve(["message": response, "status": status ])
     } catch {
@@ -262,7 +281,15 @@ class MedcheckSdk: RCTEventEmitter {
     do {
       print(Self.MODULE_NAME, "Start scanning for devices.")
       try ObjC.catchException {
-        self.searchBluetoothDevice()
+        if (self.currentDeviceType == self.DEVICE_BODY_MASS_INDEX) {
+            self.searchBluetoothDevice()
+        }
+        
+        if (self.currentDeviceType == self.DEVICE_BLOOD_PRESSURE || self.currentDeviceType == self.DEVICE_BLOOD_GLUCOSE) {
+            self.bluetoothManager = BPMDataManager.sharedInstance
+            self.bluetoothManager?.delegate = self
+            self.bluetoothManager?.didUpdateManager()
+        }
       }
       resolve([ "message": SCAN_BEGAN ])
     } catch {
@@ -273,15 +300,15 @@ class MedcheckSdk: RCTEventEmitter {
   @objc func disconnectFromDevice(_ uuid: String,
                                   resolver resolve: RCTPromiseResolveBlock,
                                   rejecter reject: RCTPromiseRejectBlock) {
-    
-  }
-  
-  @objc func startCollection(_ resolve: RCTPromiseResolveBlock,
-                             rejecter reject: RCTPromiseRejectBlock) {
     do {
       
       try ObjC.catchException {
-        
+        if (self.currentDeviceType == self.DEVICE_BLOOD_PRESSURE || self.currentDeviceType == self.DEVICE_BLOOD_GLUCOSE) {
+            self.bluetoothManager?.bluetoothManager.connectPeripheral(self.userSelectedBleDevice!)
+            if self.userSelectedBleDevice != nil {
+                self.bluetoothManager?.didDisconnectPeripheral(self.userSelectedBleDevice!)
+            }
+        }
       }
       resolve(nil)
     } catch {
@@ -289,58 +316,112 @@ class MedcheckSdk: RCTEventEmitter {
     }
   }
   
+  @objc func startCollection(_ resolve: RCTPromiseResolveBlock,
+                             rejecter reject: RCTPromiseRejectBlock) {
+    do {
+      
+      try ObjC.catchException {
+        if (self.currentDeviceType == self.DEVICE_BLOOD_PRESSURE || self.currentDeviceType == self.DEVICE_BLOOD_GLUCOSE) {
+            if self.userSelectedBleDevice != nil {
+                self.bluetoothManager?.bluetoothManager.connectPeripheral(self.userSelectedBleDevice!)
+            }
+        }
+      }
+      resolve(nil)
+    } catch {
+      reject(Self.UNKNOWN_ERROR, Self.UNKOWN_ERROR_MSG, error)
+    }
+  }
+    
+    @objc func clearCollection(_ resolve: RCTPromiseResolveBlock,
+                               rejecter reject: RCTPromiseRejectBlock) {
+      do {
+        
+        try ObjC.catchException {
+          if (self.currentDeviceType == self.DEVICE_BLOOD_PRESSURE || self.currentDeviceType == self.DEVICE_BLOOD_GLUCOSE) {
+              self.bluetoothManager?.clearBPMDataCommand()
+          }
+        }
+        resolve(nil)
+      } catch {
+        reject(Self.UNKNOWN_ERROR, Self.UNKOWN_ERROR_MSG, error)
+      }
+    }
+    
+    @objc func timeSyncBPMDevice(_ resolve: RCTPromiseResolveBlock,
+                               rejecter reject: RCTPromiseRejectBlock) {
+      do {
+        
+        try ObjC.catchException {
+          if (self.currentDeviceType == self.DEVICE_BLOOD_PRESSURE) {
+            self.bluetoothManager?.timeSyncOfBPM()
+          }
+        }
+        resolve(nil)
+      } catch {
+        reject(Self.UNKNOWN_ERROR, Self.UNKOWN_ERROR_MSG, error)
+      }
+    }
+  
   @objc func connectToDevice(_ uuid: String,
                              resolver resolve: RCTPromiseResolveBlock,
                              rejecter reject: RCTPromiseRejectBlock) {
     do {
       
       try ObjC.catchException {
-        print("====> \(uuid) <====")
         
-        let peripheral = self.arrLSBLEList.filter({ (item) -> Bool in
-          return item?.deviceName.description.contains(uuid ) ?? false
-        })
-        
-        if(peripheral.count > 0 && peripheral[0] != nil) {
-          let peripheral = peripheral[0]
-          
-          if ((peripheral?.deviceName?.contains("1144B"))! || (peripheral?.deviceName?.contains("SFBS1"))!){
+        if (self.currentDeviceType == self.DEVICE_BODY_MASS_INDEX) {
+            let peripheral = self.arrLSBLEList.filter({ (item) -> Bool in
+              return item?.deviceName.description.contains(uuid ) ?? false
+            })
             
-            self.lsBleManager?.stopSearch()
-            let tempItem = self.arrLSBLEList[0]
-            
-            print("=====> tempItem <======", tempItem)
-            
-            if tempItem!.preparePair{
-              if tempItem?.broadcastId != nil{
-                  self.lsBleManager?.deleteMeasureDevice(tempItem?.broadcastId)
+            if(peripheral.count > 0 && peripheral[0] != nil) {
+              let peripheral = peripheral[0]
+              
+              if ((peripheral?.deviceName?.contains("1144B"))! || (peripheral?.deviceName?.contains("SFBS1"))!){
+                
+                self.lsBleManager?.stopSearch()
+                let tempItem = self.arrLSBLEList[0]
+                
+                if tempItem!.preparePair{
+                  if tempItem?.broadcastId != nil{
+                      self.lsBleManager?.deleteMeasureDevice(tempItem?.broadcastId)
 
+                  }
+                  self.lsBleManager?.pair(with: tempItem, pairedDelegate: self)
+                } else {
+                  self.setupProductUserInfoOnPairingMode()
+                  //              self.bluetoothManager.stopScanPeripheral()
+                  //              self.lsBleManager?.stopDataReceiveService()
+                  self.currentConnectedBMIDevice = tempItem
+                  
+                  
+                  self.loadDataFromDatabase()
+                  //BMI Scanning started
+                  if self.lsCurrentDeviceUser == nil{
+                    self.lsCurrentDeviceUser = self.setupCurrentDeviceUser()
+                  }
+                  
+                  self.lsDatabaseManager?.databaseDelegate = self
+                  self.lsBleManager?.connectDevice(self.currentConnectedBMIDevice!, connectDelegate: self)
+                  self.lsBleManager?.startDataReceiveService(self)
+                  
+                }
               }
-              self.lsBleManager?.pair(with: tempItem, pairedDelegate: self)
-            } else {
-              self.setupProductUserInfoOnPairingMode()
-              //              self.bluetoothManager.stopScanPeripheral()
-              //              self.lsBleManager?.stopDataReceiveService()
-              self.currentConnectedBMIDevice = tempItem
-              
-              
-              self.loadDataFromDatabase()
-              //BMI Scanning started
-              
-              if self.lsCurrentDeviceUser == nil{
-                self.lsCurrentDeviceUser = self.setupCurrentDeviceUser()
-              }
-              
-              self.lsDatabaseManager?.databaseDelegate = self
-              self.lsBleManager?.connectDevice(self.currentConnectedBMIDevice!, connectDelegate: self)
-              self.lsBleManager?.startDataReceiveService(self)
-              
             }
-          }
+        } else {
+            let peripheral = self.bluetoothManager?.arrBLEList.filter({ (item) -> Bool in
+                return item.name?.description.contains(uuid ) ?? false
+            })
+            
+            if(peripheral?.count ?? 0 > 0 && peripheral?[0] != nil) {
+                let peripheral = peripheral?[0]
+                self.userSelectedBleDevice = peripheral
+                self.bluetoothManager?.bluetoothManager.stopScanPeripheral()
+                self.bluetoothManager?.bluetoothManager.connectPeripheral(peripheral!)
+            }
         }
           
-        
-        
       }
       resolve(nil)
     } catch {
@@ -389,7 +470,6 @@ class MedcheckSdk: RCTEventEmitter {
         
         let object = WscaleUser(key: key, value: value)
         
-        print("PAIR TO USER", object.value, object.key)
         self.lsBleManager?.bindingDeviceUsers(UInt(object.key)!, userName: self.selectedUserDetails?.name ?? object.value)
 
       }
@@ -416,16 +496,9 @@ class MedcheckSdk: RCTEventEmitter {
     delay(0.33) {
       if deviceID.length > 0 {
         var userID = ""
-//        if self.lsCurrentDeviceUser == nil{
-//          userID = "10090"
-//        }
-//        else{
-          userID = "10090"
-//        }
+        userID = "10090"
         let queryPredicate = NSPredicate.init(format: "userID = %@", userID)
         if let deviceUser = (self.lsDatabaseManager!.allObjectForEntity(forName: "DeviceUser", predicate: queryPredicate)).last as? DeviceUser{
-          
-          print("setupProductUserInfoOnSyncMode \(DataFormatConverter.parseObjectDetail(inDictionary: deviceUser))")
           
           self.lsCurrentDeviceUser = deviceUser
           
@@ -467,10 +540,7 @@ class MedcheckSdk: RCTEventEmitter {
             userInfo?.unit = UNIT_KG
           }
           
-          
           userInfo?.athleteLevel = (deviceUser.athleteLevel?.uintValue)!
-          
-          print("set product user info on sync mode %@",DataFormatConverter.parseObjectDetail(inDictionary: userInfo));
           self.lsBleManager?.setProductUserInfo(userInfo)
         }
       }
@@ -500,7 +570,6 @@ extension MedcheckSdk:LSBlePairingDelegate {
   }
   
   func bleManagerDidDiscoverUserList(_ userlist: [AnyHashable : Any]!) {
-    print("userList: \(userlist)")
     
     let maxUserNumber = userlist.count
     let deviceUserArray = NSMutableArray()
@@ -514,7 +583,6 @@ extension MedcheckSdk:LSBlePairingDelegate {
       var userNameDict = [String : String]()
       var userListArray = [Any]()
       for (key, value) in userlist {
-//        print(key, value)
         userNameDict["\(key)"] = value as? String ?? "Unknown"
         userListArray.append(mapUser("\(key)", value: value as? String ?? "Unknown"))
       }
@@ -530,94 +598,16 @@ extension MedcheckSdk:LSBlePairingDelegate {
           username = uName
         }
         title = "P\(key):\(username)"
-        print(title)
       }
       
         var userName = "Unknown"
-//      self.selectedUserDetails = userNameDict[0]
-//      self.lsBleManager?.bindingDeviceUsers(1, userName: userNameDict["\(key)"])
-      //TODO:- Undo for direct connection
-//      self.lsBleManager?.bindingDeviceUsers(1, userName: userNameDict["\(1)"])
       
     }
-    
-    
-    
-    
-//    if maxUserNumber > 0 {
-//      // MARK: These are the available users in BMI Device
-//      // Select User to Pair
-//      let actionSheetController = UIAlertController(title: "MedCheck", message: "Select User to Pair", preferredStyle: .actionSheet)
-//
-//      // Create and add the Cancel action
-//      let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { action -> Void in
-//        // Just dismiss the action sheet
-//      }
-//      actionSheetController.addAction(cancelAction)
-//
-//      // Create and add first option action
-//      var username = ""
-//      var title = ""
-//      var key = ""
-//
-//      var userNameDict = [String : String]()
-//      for (key, value) in userlist {
-//        //print(key, value)
-//        userNameDict["\(key)"] = value as? String ?? "Unknown"
-//      }
-//
-//      for index in 1...maxUserNumber {
-//        key = "\(index)"
-//        if let uName = userNameDict[key]{
-//          username = uName
-//        }
-//        title = "P\(key):\(username)"
-//        let takePictureAction = UIAlertAction(title: title, style: .default) { action -> Void in
-//
-//          self.delay(0.3, closure: {
-//            let actionSheetInnerController = UIAlertController(title: "Medilives", message: "Select User to Pair", preferredStyle: .actionSheet)
-//
-//            for (_, userData) in self.contactArray.enumerated(){
-//              let selectUser = UIAlertAction(title: userData.name, style: .default) { action -> Void in
-//                //print("selected user \(userData)")
-//                self.selectedUserDetails = userData
-//                self.lsBleManager?.bindingDeviceUsers(UInt(index), userName: userData.name)
-//              }
-//              actionSheetInnerController.addAction(selectUser)
-//            }
-//
-//            actionSheetInnerController.popoverPresentationController?.sourceView = self.view as UIView
-//            self.present(actionSheetInnerController, animated: true, completion: nil)
-//          })
-//
-//        }
-//
-//        actionSheetController.addAction(takePictureAction)
-//        if username.count == 0{
-//          username = "Unknown"
-//        }
-//        deviceUserArray.add(username)
-//      }
-////      actionSheetController.popoverPresentationController?.sourceView = self.view as UIView
-////      self.present(actionSheetController, animated: true, completion: nil)
-//    }
-    
-    //        self.lsBleManager?.bindingDeviceUsers(1, userName: UserInfo.savedUser()?.name)
-    //        self.lsBleManager?.bindingDeviceUsers(2, userName: UserInfo.savedUser()?.name)
-    //        self.lsBleManager?.bindingDeviceUsers(3, userName: UserInfo.savedUser()?.name)
-    //        self.lsBleManager?.bindingDeviceUsers(4, userName: UserInfo.savedUser()?.name)
-    //        self.lsBleManager?.bindingDeviceUsers(5, userName: UserInfo.savedUser()?.name)
-    //        self.lsBleManager?.bindingDeviceUsers(6, userName: UserInfo.savedUser()?.name)
-    //        self.lsBleManager?.bindingDeviceUsers(7, userName: UserInfo.savedUser()?.name)
-    //        self.lsBleManager?.bindingDeviceUsers(8, userName: UserInfo.savedUser()?.name)
   }
   
   func bleManagerDidPairedResults(_ lsDevice: LSDeviceInfo!, pairStatus: Int32) {
     
-    print("bleManagerDidPairedResults: \(String(describing: lsDevice)) pair status: \(pairStatus)")
-    
     if pairStatus == 1 {
-        print("Paired Results", lsDevice)
       self.emitEvent(Self.DEVICE_CONNECTED_EVENT, withData: self.mapDeviceDescription(lsDevice, isDeviceAlreadyPaired: true))
       
       if self.lsCurrentDeviceUser == nil{
@@ -643,23 +633,7 @@ extension MedcheckSdk:LSBlePairingDelegate {
       
       userInfo.setValue((self.selectedUserDetails?.weight.ns.intValue)! > 0 ? self.selectedUserDetails?.weight : "65", forKey: "weight")
       
-//        userInfo.setValue("1.6", forKey: "height")
-//        userInfo.setValue("65", forKey: "weight")
         userInfo.setValue("1", forKey: "athleteLevel")
-//        userInfo.setValue("1989-09-01", forKey: "birthday")
-      
-        //NOT IN USE FOR PROJECT rn.
-//        if let code = self.selectedUserDetails?.gender , !code.trim.isEmpty {
-//          if code == "af" || code == "am" {
-//            userInfo.setValue("1", forKey: "athleteLevel")
-//          }
-//          else {
-//            userInfo.setValue("0", forKey: "athleteLevel")
-//          }
-//        }
-//        else {
-//          userInfo.setValue("1", forKey: "athleteLevel")
-//        }
       
       // FIXME:- Add User Birthday
       if self.selectedUserDetails?.dob != nil && self.selectedUserDetails?.dob != "" {
@@ -690,22 +664,6 @@ extension MedcheckSdk:LSBlePairingDelegate {
       
       newlyUser.userprofiles = DeviceUserProfiles.createUserProfiles(withInfo: userProfiles as! [AnyHashable : Any], in: self.lsDatabaseManager!.managedContext)
       
-//      let alarmClock = NSMutableDictionary()
-//      alarmClock.setValue("1", forKey: "alarmClockId")
-//      alarmClock.setValue(Date(), forKey: "alarmClockTime")
-//      alarmClock.setValue("127", forKey: "alarmClockDay")
-//
-//      let defaultValue = NSNumber(value: true)
-//      alarmClock.setValue(defaultValue, forKey: "monday")
-//      alarmClock.setValue(defaultValue, forKey: "tuesday")
-//      alarmClock.setValue(defaultValue, forKey: "wednesday")
-//      alarmClock.setValue(defaultValue, forKey: "thursday")
-//      alarmClock.setValue(defaultValue, forKey: "friday")
-//      alarmClock.setValue(defaultValue, forKey: "saturday")
-//      alarmClock.setValue(defaultValue, forKey: "sunday")
-//
-//      newlyUser.userprofiles?.deviceAlarmClock = DeviceAlarmClock.createAlarmClock(withInfo: alarmClock as! [AnyHashable : Any], in: self.lsDatabaseManager!.managedContext)
-      
       let scanFilterInfo = NSMutableDictionary()
       scanFilterInfo.setValue("1", forKey: "scanFilterId")
       scanFilterInfo.setValue("All", forKey: "broadcastType")
@@ -719,10 +677,8 @@ extension MedcheckSdk:LSBlePairingDelegate {
       print("set product user info on pairing mode \(String(describing: productUserInfo))")
       
       self.lsCurrentDeviceUser = newlyUser
-      //            WeightScaleCurrentDeviceUser.shared.saveCurrentDeviceUser(self.lsCurrentDeviceUser!)
       
       self.lsBleManager?.setProductUserInfo(productUserInfo)
-//      lsCurrentDeviceUser = self.lsCurrentDeviceUser
       
       let userId = selectedUserDetails?.id
       BleDevice.bindDevice(withUserId: userId!, deviceInfo: lsDevice, in: self.lsDatabaseManager!.managedContext)
@@ -740,24 +696,17 @@ extension MedcheckSdk:LSBlePairingDelegate {
       self.lsBleManager?.connectDevice(self.currentConnectedBMIDevice!, connectDelegate: self)
       self.lsBleManager?.startDataReceiveService(self)
       
-//      self.lsBleManager?.stopDataReceiveService()
-//      appDelegate.window?.rootViewController?.dismiss(animated: true, completion: {})
-      
-    }
-    else{
-//      showAlert("Pairing failed")
+    } else {
       print("===> Pairing Failed <====")
     }
   }
   
   func setupProductUserInfoOnPairingMode(){
     let userInfo = DataFormatConverter.getProductUserInfo(self.lsCurrentDeviceUser)
-    //print("set product user info on pairing mode \(String(describing: userInfo))")
     self.lsBleManager?.setProductUserInfo(userInfo)
   }
   
   func getProductUserInfo(deviceUser: DeviceUser) -> LSProductUserInfo{
-    //print("device user info \(DataFormatConverter.parseObjectDetail(inDictionary: deviceUser))")
     if (deviceUser.birthday == nil) {
       //print("Birthday is nil.......")
     }
@@ -809,33 +758,10 @@ extension MedcheckSdk:LSBlePairingDelegate {
   }
   //call LSBLEDeviceManager interface searchLsBleDevice...
   func searchBluetoothDevice() {
-    //        [self.scanResultsArray removeAllObjects];
-    //        [self.tableView reloadData];
-    
-    //you can change the device type which one or all you want to scan
     let enableScanDeviceTypes = self.getEnableScanDeviceTypes()
     self.lsBleManager?.searchLsBleDevice([enableScanDeviceTypes], of: BROADCAST_TYPE_ALL, searchCompletion: { (lsDevice) in
       
-//        print("BMI Scanned deviceName==> \(lsDevice?.deviceName)")
-//        print("BMI Scanned deviceId==> \(lsDevice?.deviceId)")
-//        print("BMI Scanned deviceSn==> \(lsDevice?.deviceSn)")
-//        print("BMI Scanned deviceType==> \(lsDevice?.deviceType.rawValue)")
-//        print("BMI Scanned broadcastId==> \(lsDevice?.broadcastId)")
-//        print("BMI Scanned modelNumber==> \(lsDevice?.modelNumber)")
-//        print("BMI Scanned password==> \(lsDevice?.password)")
-//        print("BMI Scanned protocolType==> \(lsDevice?.protocolType)")
-//        print("BMI Scanned preparePair==> \(lsDevice?.preparePair)")
-//        print("BMI Scanned supportDownloadInfoFeature==> \(lsDevice?.supportDownloadInfoFeature)")
-//        print("BMI Scanned maxUserQuantity==> \(lsDevice?.maxUserQuantity)")
-//        print("BMI Scanned systemId==> \(lsDevice?.systemId)")
-//        print("BMI Scanned peripheralIdentifier==> \(lsDevice?.peripheralIdentifier)")
-//        print("BMI Scanned deviceUserNumber==> \(lsDevice?.deviceUserNumber)")
-//        print("BMI Scanned peripheral==> \(lsDevice?.lsCBPeripheral)")
-      
         let peripheral = self.lsBleManager?.getLsPeripheral(withKey: lsDevice!.deviceName)
-        
-        //print("BMI Scanned peripheral 2==> \(peripheral)")
-        
         
         if lsDevice != nil {
           var isDeviceAlreadyPaired = false
@@ -868,28 +794,11 @@ extension MedcheckSdk:LSBlePairingDelegate {
 
             DispatchQueue.main.async {
                 //MARK:- Refresh Table
-              print("=========rnBmiDeviceList================")
-              print(self.rnBmiDeviceList)
-              print("==================================")
-              print("=========arrLSBLEList================")
-              print(self.arrLSBLEList)
-              print("==================================")
               self.emitEvent(Self.DEVICE_FOUND_EVENT, withData: self.rnBmiDeviceList)
             }
           }
           
         }
-//          self.delay(2, closure: {
-//          //self.deviceTbl.reloadData()
-//          print("=========arrBLEList============232323====")
-//          print(self.arrBLEList)
-//          print("===============================2323==")
-//          print("=========arrLSBLEList===============232323=")
-//          print(self.arrLSBLEList)
-//          print("==============================3232===")
-//          //MARK: - Refresh Table
-//        })
-      
     })
   }
   
@@ -905,10 +814,6 @@ extension MedcheckSdk:LSBlePairingDelegate {
 
 extension MedcheckSdk: LSBleDataReceiveDelegate{
   func updateGattConnectStatus(broadcastId: String, connectState: DeviceConnectState){
-    //        self.currentConnectedProtocol=deviceItem.protocolType;
-    
-    //        BleDevice *deviceItem=[self.pairedDeviceArray objectAtIndex:indexPath.row];
-    
     
     if(connectState==CONNECTED_SUCCESS)
     {
@@ -926,7 +831,6 @@ extension MedcheckSdk: LSBleDataReceiveDelegate{
   
   
   func bleManagerDidConnectStateChange(_ connectState: DeviceConnectState, deviceName: String!) {
-    //print("UI device connect state change %d",connectState);
     self.updateGattConnectStatus(broadcastId: deviceName, connectState: connectState)
     self.dataMap.removeAllObjects()
     self.weightDataMap.removeAllObjects()
@@ -947,7 +851,7 @@ extension MedcheckSdk: LSBleDataReceiveDelegate{
   }
   
   func bleManagerDidReceiveWeightData(withOperatingMode2 weightData: LSWeightData!) {
-    print("bleManagerDidReceiveWeightData(withOperatingMode2) \(weightData)")
+//    print("bleManagerDidReceiveWeightData(withOperatingMode2) \(weightData)")
   }
   
   func bleManagerDidReceiveWeightMeasuredData(_ data: LSWeightData!) {
@@ -968,8 +872,6 @@ extension MedcheckSdk: LSBleDataReceiveDelegate{
       else{
         value = weightValue!
       }
-      //print("weight \(value)")
-      //            [self updateRecordNumber:data.broadcastId count:0 text:value unit:data.deviceSelectedUnit];
     }
     else{
       if weightDataList.count > 1{
@@ -983,21 +885,6 @@ extension MedcheckSdk: LSBleDataReceiveDelegate{
           self.showWeightBMIPopUp(weightAppendData: nil)
         }
       }
-      
-      //            var tempWeightDatas = self.findMeasuredDataArrayWithBroadcastID(broadcastId: data.broadcastId)
-      //            //print("tempWeightDatas \(DataFormatConverter.parseObjectDetail(inDictionary: tempWeightDatas))")
-      //            tempWeightDatas?.append(data)
-      //            self.dataMap.setValue(tempWeightDatas, forKey: data.broadcastId)
-      //            //print("self.dataMap \(self.dataMap)")
-      //            if data.hasAppendMeasurement == 0{
-      //                self.getLatestReadingData(deviceID: data.deviceId)
-      //            }
-      
-      
-      
-      
-      
-      //            [self updateRecordNumber:data.broadcastId count:tempWeightDatas.count text:nil unit:nil];
     }
   }
   
@@ -1013,8 +900,6 @@ extension MedcheckSdk: LSBleDataReceiveDelegate{
         value = weightValue!
       }
       
-      print("weight \(value)")
-
       var bmiValue = "NA"
       
       
@@ -1024,8 +909,7 @@ extension MedcheckSdk: LSBleDataReceiveDelegate{
         let df = DateFormatter()
         df.dateFormat = "dd-MMM-yyyy"
         df.setLocal()
-        
-//        let date1 = df.date(from: selectedUserDetails?.dob ?? "1989-09-01")
+
         let date1 = df.date(from: "09-jan-1989")
         
         let calendar = Calendar(identifier: .gregorian)
@@ -1036,24 +920,18 @@ extension MedcheckSdk: LSBleDataReceiveDelegate{
         let currentYear = dateComponents.year
         let age = UInt(currentYear! - year!)
         
-        
-        
-        //                basalMetabolism = LSFatParser.basalMetabolism(byMuscl: Double(weightAppendData!.muscleMassRatio), weight: data.weight, age: Int32(age), sex: UserInfo.savedUser()!.gender == "m" ? SEX_MALE : SEX_FEMALE)
         basalMetabolism = self.calculateBMR(weight: data.weight, height: 160.0, age: age)
         
-        print("basalMetabolism \(basalMetabolism)")
         bmiExtraData.append("MuscleMassRatio: \(weightAppendData!.muscleMassRatio)")
         bmiExtraData.append("\nBodyFatRatio: \(weightAppendData!.bodyFatRatio)")
         bmiExtraData.append("\nBoneDensity: \(weightAppendData!.boneDensity)")
         bmiExtraData.append("\nBodywaterRatio: \(weightAppendData!.bodywaterRatio)")
         bmiExtraData.append("\nBMR: \(basalMetabolism)")
       }
-//      if UserInfo.savedUser()?.height != "" && UserInfo.savedUser()!.height.ns.floatValue > 0{
-      let height = (("160".ns.floatValue) / 100)
+
+        let height = (("160".ns.floatValue) / 100)
         let bmiCal = (Float(data.weight) / (height * height))
         bmiValue = String(format: "%.1f", bmiCal)
-//      }
-//      let readingdata = ["bleType" : "BMI","person":contactArray[0], "data" : ["kgWeightValue":  String(format:"%.1f",data.weight), "valueUnit" : data.deviceSelectedUnit ?? "", "date" : data.date ?? "", "lbWeightValue" : data.lbWeightValue, "stWeightValue" : data.stWeightValue, "bmiValue": bmiValue, "appendedData" : bmiExtraData]] as [String : Any]
       
       let familyID = "10090"
       
@@ -1079,35 +957,23 @@ extension MedcheckSdk: LSBleDataReceiveDelegate{
                                               "bmr":weightAppendData != nil ? basalMetabolism : ""]
         ]]
       
-      print("User BMI Data", param)
       self.emitEvent(Self.DATA_EVENT, withData: param)
     }
   }
   
   func calculateBMR(weight: Double, height: Double, age: UInt) -> String{
-//    if UserInfo.savedUser()?.gender == "m"{
       let weightCal = 13.75 * weight
       let heightCal = 5.003 * height
       let ageCal = 6.755 * Double(age)
       let bmr = (66.47 + weightCal + heightCal) - ageCal
       return String(format: "%.0f", bmr)
-//    }
-//    else{
-//      let weightCal = 9.563 * weight
-//      let heightCal = 1.85 * height
-//      let ageCal = 4.676 * Double(age)
-//      let bmr = (655.1 + weightCal + heightCal) - ageCal
-//      return String(format: "%.0f", bmr)
-//    }
   }
   
   func showWeightDataInTableList(deviceID: String){
     arrNewlyFetchedResults.removeAll()
-//    dismissPopUp()
     
     let fatScaleMeasuredData = self.getFatScaleMeasuredData(deviceId: deviceID)
-    //print("fatScaleMeasuredAppendData \(fatScaleMeasuredData)")
-    
+
     if fatScaleMeasuredData.count > 0{
       if let weightDatas = fatScaleMeasuredData.value(forKeyPath: String(format:"%@.WeightData",deviceID)) as? [LSWeightData]{
         //print("weightDatas \(weightDatas)")
@@ -1141,20 +1007,17 @@ extension MedcheckSdk: LSBleDataReceiveDelegate{
         }
       }
     }
-//    print("BMI results: \(arrNewlyFetchedResults)")
-    print("BMI results: \(rnMultiDataList)")
+
+//    print("BMI results: \(rnMultiDataList)")
     self.emitEvent(Self.DATA_EVENT, withData: rnMultiDataList)
   }
   
   func getLatestReadingData(deviceID: String){
     let fatScaleMeasuredData = self.getFatScaleMeasuredData(deviceId: deviceID)
-    //print("fatScaleMeasuredData \(fatScaleMeasuredData)")
     for (_, _) in fatScaleMeasuredData.enumerated(){
       //print("_measuredData \(measuredData)")
-      
     }
     if let weightDatas = fatScaleMeasuredData.value(forKey: "WeightData") as? LSWeightData{
-      //print("weightData array \(DataFormatConverter.parseObjectDetail(inDictionary: weightDatas))")
       if weightDatas.hasAppendMeasurement == 1{
         if (fatScaleMeasuredData.value(forKey: "WeightAppendData") as? LSWeightAppendData) != nil{
           //print("WeightAppendDatas \(DataFormatConverter.parseObjectDetail(inDictionary: weightAppendDatas))")
@@ -1167,14 +1030,12 @@ extension MedcheckSdk: LSBleDataReceiveDelegate{
     guard let weightData = data else {
       return
     }
-    //print("bleManagerDidReceiveWeightAppendMeasuredData2 \(DataFormatConverter.parseObjectDetail(inDictionary: data))")
+
     self.fatDataList.append(weightData)
     //        self.getLatestReadingData(deviceID: data.deviceId)
     if self.fatDataList.count > 1 {
       self.showWeightDataInTableList(deviceID: data.deviceId)
-      //            self.showWeightBMIPopUp(weightAppendData: self.fatDataList.last)
-    }
-    else{
+    } else {
       self.showWeightBMIPopUp(weightAppendData: data)
     }
   }
@@ -1255,7 +1116,7 @@ extension MedcheckSdk: DatabaseManagerDelegate{
   
   func databaseManagerDidCreatedManagedObjectContext(_ managedObjectContext: NSManagedObjectContext!) {
     var userID = "10090"
-    print("DMDCMOC", self.selectedUserDetails)
+
     if self.lsCurrentDeviceUser == nil{
       userID = selectedUserDetails?.id ?? "rnUser"
     }
@@ -1267,72 +1128,26 @@ extension MedcheckSdk: DatabaseManagerDelegate{
         userID = "rnUser"
       }
     }
-    
-    //        if self.lsCurrentDeviceUser == nil{
-    //            userID = (UserInfo.savedUser()?.id)!
-    //        }
-    //        else{
-    //            userID = (self.lsCurrentDeviceUser?.userID)!
-    //        }
+
     let queryPredicate = NSPredicate.init(format: "userID = %@", userID)
     let deviceUser = self.lsDatabaseManager?.allObjectForEntity(forName: "DeviceUser", predicate: queryPredicate)
     
     if !(deviceUser?.isEmpty)! {
       self.lsCurrentDeviceUser = deviceUser!.last as? DeviceUser
-      //print("my user info \(DataFormatConverter.parseObjectDetail(inDictionary: self.lsCurrentDeviceUser))")
-    }
-    else{
-      //print("no device user and user profiles,create.......")
+    } else {
       let userInfo = NSMutableDictionary()
       userInfo.setValue("10090", forKey: "userId")
       userInfo.setValue("Ravi", forKey: "userName")
-//      if let code = UserInfo.savedUser()?.gender , !code.trim.isEmpty {
-//        if code == "af" || code == "f" {
-//          userInfo.setValue("Female".localized, forKey: "userGender")
-//        }
-//        else {
-//
-//        }
-//      }
-//      else {
-//        userInfo.setValue("Male".localized, forKey: "userGender")
-//      }
-      
       userInfo.setValue("Male", forKey: "userGender")
       userInfo.setValue("1.6", forKey: "height")
       userInfo.setValue("65", forKey: "weight")
-      
-//      if let code = UserInfo.savedUser()?.gender , !code.trim.isEmpty {
-//        if code == "af" || code == "am" {
-          userInfo.setValue("1", forKey: "athleteLevel")
-//        }
-//        else {
-//          userInfo.setValue("0", forKey: "athleteLevel")
-//        }
-//      }
-//      else {
-//        userInfo.setValue("0", forKey: "athleteLevel")
-//      }
-      
-      
-//      if UserInfo.savedUser()?.dob != nil{
-//        let df = DateFormatter()
-//        df.dateFormat = "dd-MMM-yyyy"
-//        df.setLocal()
-//        let date1 = df.date(from: (UserInfo.savedUser()?.dob)!)
-//        df.dateFormat = "yyyy-MM-dd"
-//        let newDate = df.string(from: date1!)
-//        userInfo.setValue(newDate, forKey: "birthday")
-//      }
-//      else{
-        userInfo.setValue("1989-09-01", forKey: "birthday")
-//      }
+      userInfo.setValue("1", forKey: "athleteLevel")
+      userInfo.setValue("1989-09-01", forKey: "birthday")
       
       self.lsCurrentDeviceUser = DeviceUser.createDeviceUser(userInfo: userInfo as! [AnyHashable : Any], in: managedObjectContext)
       
       
       let userProfiles = NSMutableDictionary()
-//      userProfiles.setValue(UserInfo.savedUser()?.id, forKey: "userId")
       userProfiles.setValue("10090", forKey: "userId")
       userProfiles.setValue("Kg", forKey: "weightUnit")
       userProfiles.setValue("70", forKey: "weightTarget")
@@ -1379,9 +1194,6 @@ extension MedcheckSdk: DatabaseManagerDelegate{
     if let deviceArray = self.lsDatabaseManager?.allObjectForEntity(forName: "BleDevice", predicate: nil) as? [BleDevice]{
       //print(deviceArray)
       for (_, device) in deviceArray.enumerated(){
-        
-        //print("get device info from database %@",(device as AnyObject).description)
-        //                [self.pairedDeviceArray addObject:device];
         self.lsBleManager?.addMeasureDevice(DataFormatConverter.converted(toLSDeviceInfo: device ))
         if device.deviceID != nil{
           self.setupProductUserInfoOnSyncMode(deviceID: device.deviceID!, userNumber: (device.deviceUserNumber?.intValue)!)
@@ -1390,7 +1202,83 @@ extension MedcheckSdk: DatabaseManagerDelegate{
       }
     }
   }
-  
-//  func setupProductUserInfoOnSyncMode(deviceID: String, userNumber: Int)
-//  func showDeviceInfoInAlertView(device: LSDeviceInfo, title: String)
+    
+    func noBloothAlert(_ title : String, message : String) {
+        print("==============================================")
+        print("||")
+        print("title:", title)
+        print("message:", message)
+        print("||")
+        print("==============================================")
+    }
+}
+
+extension MedcheckSdk: BPMDataManagerDelegate {
+    func medcheckBLEDetected(_ peripheral: CBPeripheral, advertisementData: [String : Any], RSSI: NSNumber) {
+        noBloothAlert("FOUND LIST", message: (bluetoothManager?.arrBLEList.description)!)
+        //Throws event every second
+        self.rnBmiDeviceList.removeAll()
+        if let listDevice = bluetoothManager?.arrBLEList {
+            for device in listDevice {
+                self.rnBmiDeviceList.append(self.mapDeviceDescriptionBGM(device, isDeviceAlreadyPaired: false))
+            }
+            DispatchQueue.main.async {
+              self.emitEvent(Self.DEVICE_FOUND_EVENT, withData: self.rnBmiDeviceList)
+            }
+            
+        }
+    }
+    
+    func didMedCheckConnected(_ connectedPeripheral: CBPeripheral) {
+//        print("didMedCheckConnected MedcheckSDK \(connectedPeripheral)")
+        self.emitEvent(Self.DEVICE_CONNECTED_EVENT, withData: self.mapDeviceDescriptionBGM(connectedPeripheral, isDeviceAlreadyPaired: true))
+    }
+    
+    func connectedUserData(_ connectedUser: [String : Any]) {
+//        print("connectedUserData \(connectedUser)")
+    }
+    func willTakeNewReading(_ BLEName: CBPeripheral) {
+//        print("willStartDataReading \(BLEName)")
+    }
+    
+    func didSyncTime() {
+//        print("didSyncTime")
+    }
+    
+    func didTakeNewReading(_ readingData: [String : Any]) {
+        if "\(readingData["device"])" == "Blood Pressure" {
+            let message = "Systolic: \(readingData["Systolic"]!) \nDiastolic: \(readingData["Diastolic"]!) \nPulse: \(readingData["Pulse"]!) \nIBH: \(readingData["Indicator"]!) \nDate: \(readingData["Date"]!)"
+            noBloothAlert("New Reading Blood Pressure", message: message)
+        }
+        else if "\(readingData["device"])" == "Glucose" {
+            let message = "mg/dL: \(readingData["high_blood"]!) \nMeal: \(readingData["Indicator"]!) \nDate: \(readingData["Date"]!)"
+//            noBloothAlert("New Reading Glucose", message: message)
+        }
+    }
+    
+    func fetchAllDataFromMedCheck(_ readingData: [Any]) {
+        self.emitEvent(Self.DATA_EVENT, withData: jsonStringConvert(readingData))
+    }
+    
+    func didClearedData() {
+        print("didClearedData")
+    }
+    
+    func willStartDataReading() {
+        print("willStartDataReading")
+    }
+    
+    func didEndDataReading() {
+        print("didEndDataReading")
+    }
+    
+    func jsonStringConvert(_ obj : Any) -> String {
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: obj, options: JSONSerialization.WritingOptions.prettyPrinted)
+            return  String(data: jsonData, encoding: String.Encoding.utf8)! as String
+            
+        } catch {
+            return ""
+        }
+    }
 }

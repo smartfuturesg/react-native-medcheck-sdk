@@ -5,6 +5,7 @@ export interface UserDetails {
   weight: string;
   height: string;
   gender: string;
+  deviceType: string;
 }
 
 export interface WScaleUser {

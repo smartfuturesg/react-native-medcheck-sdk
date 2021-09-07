@@ -243,6 +243,7 @@ public class BPMDataManager: NSObject, MCBluetoothDelegate {
      */
     public func didConnectedPeripheral(_ connectedPeripheral: CBPeripheral) {
         print("MainController --> didConnectedPeripheral")
+        delegate?.didMedCheckConnected?(connectedPeripheral)
     }
     
     /**
@@ -701,13 +702,13 @@ public class BPMDataManager: NSObject, MCBluetoothDelegate {
         else{
             self.initialYear = Int(buffer[1])
             let user = String(buffer[0], radix: 16)
-            let start = String(buffer[2], radix: 16)
-            let end = String(buffer[3], radix: 16)
+            let start = String(buffer[2], radix: 16).hexaToBinaryString.pad(with: "0", toLength: 8).binaryToDecimal
+            let end = String(buffer[3], radix: 16).hexaToBinaryString.pad(with: "0", toLength: 8).binaryToDecimal
             let typeBinary = String(buffer[7], radix: 16).hexaToBinaryString
             let type = typeBinary.substring(with: 7..<8)
             
             print(user)
-            let data = BGMCMD9Data.init(user: user, startingIndex: start, endingIndex: end, bgmType: type)
+            let data = BGMCMD9Data.init(user: user, startingIndex: "\(start)", endingIndex: "\(end)", bgmType: type)
             BGM9CMD = data
             recordCounter = 0
             BGMBT9CommandRead()
@@ -721,43 +722,46 @@ public class BPMDataManager: NSObject, MCBluetoothDelegate {
     /**
      This will calculate on BLE byte data string and get all records from Glucose device.
      */
+    
     func BGMBT0CommandRead() {
         BGMBytesString.insert(separator: "@#", every: 12)
         let byteArray = BGMBytesString.components(separatedBy: "@#")
-        for (index, binaryStr) in byteArray.enumerated(){
+        if BGM9CMD != nil{
+            for (index, binaryStr) in byteArray.enumerated(){
             if index < Int((BGM9CMD?.endingIndex)!)! {
                 let BYTE00 = binaryStr.substring(with: 0..<2) .hexaToBinaryString.pad(with: "0", toLength: 8)
                 let BYTE0_BIT1 = BYTE00.substring(with: 1..<8).binaryToDecimal //year
                 let BYTE0_BIT2 = BYTE00.substring(with: 0..<1) //0AM/1PM
-                
+
                 let BYTE01 = binaryStr.substring(with: 2..<4) .hexaToBinaryString.pad(with: "0", toLength: 8)
                 let BYTE1_BIT1 = BYTE01.substring(with: 0..<4).binaryToDecimal // month
                 let BYTE1_BIT2 = BYTE01.substring(with: 4..<8).binaryToDecimal //hour
-                
-                
+
+
                 let BYTE02 = binaryStr.substring(with: 4..<6).hexaToDecimal
                 print("day: \(BYTE02)-\(BYTE1_BIT1)-\(BYTE0_BIT1)")
                 let dateStr = String(format:"%02d-%02d-%d", BYTE02, BYTE1_BIT1, Int(BYTE0_BIT1 + 2000))
-                
+
                 let BYTE03 = binaryStr.substring(with: 6..<8) .hexaToBinaryString.pad(with: "0", toLength: 8)
                 let BYTE03_BIT1 = BYTE03.substring(with: 0..<2) // AC/PC indicator
                 let BYTE03_BIT2 = BYTE03.substring(with: 2..<8).binaryToDecimal // minutes
                 let timeStr = String(format:"%02d:%02d %@", BYTE1_BIT2, BYTE03_BIT2, (Int(BYTE0_BIT2) == 1 ? "PM" : "AM"))
-                
+
                 let BYTE04 = binaryStr.substring(with: 8..<10) .hexaToDecimal
-                
+
                 var BYTE05 = binaryStr.substring(with: 10..<12) .hexaToDecimal
                 if BYTE04 != 0{
                     BYTE05 = binaryStr.substring(with: 8..<12) .hexaToDecimal
                 }
                 let data = ["device":"Glucose", "data" : ["high_blood":  String(format: "%d",BYTE05), "Date" : dateStr+" "+timeStr, "Indicator" : BYTE03_BIT1]]  as [String : Any]
-                
+
                 self.bpmDataArray.append(data)
                 recordCounter += 1
                 if index+1 == Int((BGM9CMD?.endingIndex)!)! {
                     delegate?.fetchAllDataFromMedCheck!(bpmDataArray)
                 }
             }
+        }
         }
     }
     

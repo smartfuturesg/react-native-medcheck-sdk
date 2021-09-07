@@ -153,7 +153,6 @@ dependencies {
   implementation "com.google.android.gms:play-services-location:$PLAY_SERVICES_VERSION"
 
   implementation "com.squareup.retrofit2:converter-gson:$gsonVersion"
-
   implementation fileTree(include: ['*.aar'], dir: 'libs')
 }
 

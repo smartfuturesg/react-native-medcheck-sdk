@@ -139,6 +139,14 @@ class MedcheckSdk extends EventEmitter {
     return medcheckModule.startCollection();
   }
 
+  public clearCollection(): Promise<void> {
+    return medcheckModule.clearCollection();
+  }
+
+  public timeSyncBPMDevice(): Promise<void> {
+    return medcheckModule.timeSyncBPMDevice();
+  }
+
   public findPeriphral() {
     return medcheckModule.findPeriphral();
   }
