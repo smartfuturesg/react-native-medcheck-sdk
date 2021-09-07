@@ -5,7 +5,7 @@ Wrapper for medchecksdk
 ## Installation
 
 ```sh
-npm install https://github.com/smartfuturesg/react-native-medcheck-sdk.git --save
+npm install react-native-medcheck-sdk --save
 ```
 
 ## Usage
