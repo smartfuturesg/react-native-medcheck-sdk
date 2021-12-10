@@ -166,7 +166,7 @@ class MedcheckSdkModule(reactContext: ReactApplicationContext) : ReactContextBas
       when (exception.statusCode) {
         LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> try {
           val resolvable = exception as ResolvableApiException
-          resolvable.startResolutionForResult(currentActivity, REQUEST_CHECK_SETTINGS)
+          currentActivity?.let { resolvable.startResolutionForResult(it, REQUEST_CHECK_SETTINGS) }
         } catch (sendEx: SendIntentException) {
           logData("Failed to show dialog" + sendEx)
         } catch (classCast: ClassCastException) {
